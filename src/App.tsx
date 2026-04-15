@@ -112,6 +112,12 @@ export default function App() {
     setActivePageIndex(pages.length);
   };
 
+  const updatePageTitle = (title: string) => {
+    const newPages = [...pages];
+    newPages[activePageIndex] = title.slice(0, 20);
+    setPages(newPages);
+  };
+
   const updateCellData = (index: number, data: Partial<CellData>) => {
     setCellsData(prev => {
       const pageData = prev[activePageIndex] || {};
@@ -402,6 +408,24 @@ export default function App() {
               </div>
             ) : (
               <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-200">
+                {/* Page Title Customization */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Page Title</label>
+                  <input
+                    type="text"
+                    value={pages[activePageIndex]}
+                    onChange={(e) => updatePageTitle(e.target.value)}
+                    placeholder="Enter page title"
+                    maxLength={20}
+                    className="w-full p-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-300 transition-all font-medium"
+                  />
+                  <div className="text-[9px] text-gray-400 text-right">
+                    {pages[activePageIndex].length}/20 characters
+                  </div>
+                </div>
+
+                <div className="h-px bg-gray-100" />
+
                 <div className="space-y-1">
                   <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Select Template</h3>
                   <p className="text-[10px] text-gray-400">Choose a layout for all pages</p>
