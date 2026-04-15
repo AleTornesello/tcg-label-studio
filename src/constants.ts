@@ -1,3 +1,8 @@
+export const LocalStorageKeys = {
+  Projects: "tcg_labels_studio_projects",
+  LastOpened: "tcg_labels_studio_last_opened"
+}
+
 export interface Template {
   id: string;
   name: string;

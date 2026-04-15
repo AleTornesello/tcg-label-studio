@@ -1,9 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "motion/react";
 import { toPng } from 'html-to-image';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { TEMPLATES, type Template } from "./constants";
+import { TEMPLATES, type Template, LocalStorageKeys } from "./constants";
 import {
   Plus,
   AlignLeft,
@@ -16,7 +16,10 @@ import {
   MousePointer2,
   Printer,
   Download,
-  Loader2
+  Loader2,
+  Menu,
+  X,
+  Save,
 } from "lucide-react";
 
 interface CellData {
@@ -29,16 +32,75 @@ interface CellData {
   };
 }
 
+interface Project {
+  id: string;
+  name: string;
+  pages: string[];
+  templateId: string;
+  cellsData: Record<number, Record<number, CellData>>;
+  lastModified: number;
+}
+
 export default function App() {
   const [pages, setPages] = useState(["Page 1"]);
   const [activePageIndex, setActivePageIndex] = useState(0);
+  const [projectName, setProjectName] = useState("New project");
+  const [projectId, setProjectId] = useState<string>(() => Date.now().toString());
+  const [savedProjects, setSavedProjects] = useState<Project[]>(() => {
+    const saved = localStorage.getItem(LocalStorageKeys.Projects);
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<Template>(TEMPLATES[0]);
   const [selectedCellIndex, setSelectedCellIndex] = useState<number | null>(null);
   const [cellsData, setCellsData] = useState<Record<number, Record<number, CellData>>>({});
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmMode, setConfirmMode] = useState<'template' | 'new_project'>('template');
   const [pendingTemplate, setPendingTemplate] = useState<Template | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const printContainerRef = useRef<HTMLDivElement>(null);
+
+  // Persistence Logic
+  const saveProject = () => {
+    const newProject: Project = {
+      id: projectId,
+      name: projectName,
+      pages,
+      templateId: selectedTemplate.id,
+      cellsData,
+      lastModified: Date.now()
+    };
+
+    setSavedProjects(prev => {
+      const filtered = prev.filter(p => p.id !== projectId);
+      const updated = [newProject, ...filtered];
+      localStorage.setItem(LocalStorageKeys.Projects, JSON.stringify(updated));
+      return updated;
+    });
+    localStorage.setItem(LocalStorageKeys.LastOpened, projectId);
+  };
+
+  const loadProject = (project: Project) => {
+    setProjectId(project.id);
+    setProjectName(project.name);
+    setPages(project.pages);
+    setActivePageIndex(0);
+    const template = TEMPLATES.find(t => t.id === project.templateId) || TEMPLATES[0];
+    setSelectedTemplate(template);
+    setCellsData(project.cellsData);
+    setSelectedCellIndex(null);
+    setIsMenuOpen(false);
+    localStorage.setItem(LocalStorageKeys.LastOpened, project.id);
+  };
+
+  const deleteProject = (id: string, e: any) => {
+    e.stopPropagation();
+    setSavedProjects(prev => {
+      const updated = prev.filter(p => p.id !== id);
+      localStorage.setItem(LocalStorageKeys.Projects, JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const handleTemplateChange = (template: Template) => {
     if (template.id === selectedTemplate.id) return;
@@ -49,6 +111,7 @@ export default function App() {
 
     if (hasLabels) {
       setPendingTemplate(template);
+      setConfirmMode('template');
       setShowConfirmModal(true);
     } else {
       setSelectedTemplate(template);
@@ -57,11 +120,54 @@ export default function App() {
     }
   };
 
-  const confirmTemplateChange = () => {
-    if (pendingTemplate) {
+  const handleNewProject = () => {
+    const hasLabels = Object.values(cellsData).some(page => 
+      Object.values(page).some(cell => cell.text.trim() !== "")
+    );
+
+    if (hasLabels) {
+      setConfirmMode('new_project');
+      setShowConfirmModal(true);
+    } else {
+      resetToNewProject();
+    }
+  };
+
+  const resetToNewProject = () => {
+    const newId = Date.now().toString();
+    setPages(["Page 1"]);
+    setActivePageIndex(0);
+    setProjectName("New project");
+    setProjectId(newId);
+    setSelectedTemplate(TEMPLATES[0]);
+    setSelectedCellIndex(null);
+    setCellsData({});
+    setIsMenuOpen(false);
+    localStorage.setItem(LocalStorageKeys.LastOpened, newId);
+  };
+
+  // Initial Load
+  useEffect(() => {
+    const lastOpenedId = localStorage.getItem(LocalStorageKeys.LastOpened);
+    if (lastOpenedId) {
+      const project = savedProjects.find(p => p.id === lastOpenedId);
+      if (project) {
+        loadProject(project);
+      } else {
+        localStorage.setItem(LocalStorageKeys.LastOpened, projectId);
+      }
+    } else {
+      localStorage.setItem(LocalStorageKeys.LastOpened, projectId);
+    }
+  }, []);
+
+  const handleConfirmAction = () => {
+    if (confirmMode === 'template' && pendingTemplate) {
       setSelectedTemplate(pendingTemplate);
       setCellsData({});
       setSelectedCellIndex(null);
+    } else if (confirmMode === 'new_project') {
+      resetToNewProject();
     }
     setShowConfirmModal(false);
     setPendingTemplate(null);
@@ -162,14 +268,95 @@ export default function App() {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       {/* Toolbar / Header */}
-      <header className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-4 shrink-0 z-10">
+      <header className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-4 shrink-0 z-20">
         <h1 className="font-semibold text-sm tracking-tight">TCG Label Studio</h1>
       </header>
 
+      {/* Tiered Menu Overlay Placeholder */}
+      {isMenuOpen && (
+        <div className="fixed inset-0 z-[15] top-[104px]">
+          <div 
+            className="absolute inset-0 bg-black/5 backdrop-blur-[2px]" 
+            onClick={() => setIsMenuOpen(false)}
+          />
+          <motion.div
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            className="absolute left-4 top-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[calc(100vh-120px)]"
+          >
+            <div className="flex-1 overflow-y-auto py-2 custom-scrollbar">
+              <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">File</div>
+              <button 
+                onClick={handleNewProject}
+                className="w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+              >
+                <Plus className="w-4 h-4" /> New Project
+              </button>
+              <button 
+                onClick={saveProject}
+                className="w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+              >
+                <Save className="w-4 h-4" /> Save Current Project
+              </button>
+              
+              {savedProjects.length > 0 && (
+                <>
+                  <div className="h-px bg-gray-100 my-2" />
+                  <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Saved Projects</div>
+                  <div className="space-y-1 px-2">
+                    {savedProjects.map(project => (
+                      <div 
+                        key={project.id}
+                        onClick={() => loadProject(project)}
+                        className={`group w-full px-3 py-2 rounded-lg text-xs flex items-center justify-between transition-all cursor-pointer ${
+                          projectId === project.id ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-bold truncate">{project.name}</span>
+                          <span className="text-[9px] opacity-60">
+                            {new Date(project.lastModified).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <button 
+                          onClick={(e) => deleteProject(project.id, e)}
+                          className="p-1 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 rounded transition-all"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Secondary Toolbar (Contextual) */}
       <div className="h-12 border-b border-gray-200 bg-white flex items-center justify-between px-4 shrink-0 overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-2">
-          {pages.map((page, index) => (
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 border-r border-gray-100 pr-4 mr-2">
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500"
+            >
+              {isMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </button>
+            
+            <input
+              type="text"
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value.slice(0, 30))}
+              maxLength={30}
+              className="bg-transparent border-none focus:ring-0 font-bold text-xs tracking-tight text-gray-900 w-56 p-0 placeholder:text-gray-400"
+              placeholder="Project Name"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            {pages.map((page, index) => (
             <button
               key={index}
               onClick={() => {
@@ -192,7 +379,8 @@ export default function App() {
             <Plus className="w-4 h-4" />
           </button>
         </div>
-        <div className="flex items-center gap-2">
+      </div>
+      <div className="flex items-center gap-2">
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-full transition-all shrink-0"
@@ -513,9 +701,13 @@ export default function App() {
                 <Plus className="w-6 h-6 text-red-500 rotate-45" />
               </div>
               <div className="text-center space-y-2">
-                <h3 className="text-sm font-bold text-gray-900">Reset all labels?</h3>
+                <h3 className="text-sm font-bold text-gray-900">
+                  {confirmMode === 'template' ? 'Reset all labels?' : 'Start new project?'}
+                </h3>
                 <p className="text-xs text-gray-500 leading-relaxed">
-                  Changing the template will delete all existing label text across all pages. This action cannot be undone.
+                  {confirmMode === 'template' 
+                    ? 'Changing the template will delete all existing label text across all pages. This action cannot be undone.'
+                    : 'Starting a new project will clear all current labels, pages, and project settings. This action cannot be undone.'}
                 </p>
               </div>
             </div>
@@ -527,10 +719,10 @@ export default function App() {
                 Cancel
               </button>
               <button 
-                onClick={confirmTemplateChange}
+                onClick={handleConfirmAction}
                 className="flex-1 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 transition-colors"
               >
-                Reset & Change
+                {confirmMode === 'template' ? 'Reset & Change' : 'Clear & Start New'}
               </button>
             </div>
           </motion.div>
