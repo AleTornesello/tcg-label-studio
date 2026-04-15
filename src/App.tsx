@@ -355,7 +355,7 @@ export default function App() {
       {/* Toolbar / Header */}
       <header className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-4 shrink-0 z-20">
         <div className="flex items-center gap-3">
-          <img src="/logo.svg" alt="Logo" className="h-7" referrerPolicy="no-referrer" />
+          <img src="./logo.svg" alt="Logo" className="h-7" referrerPolicy="no-referrer" />
           <h1 className="font-semibold text-sm tracking-tight">TCG Label Studio</h1>
         </div>
       </header>
