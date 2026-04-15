@@ -21,6 +21,8 @@ import {
   X,
   FolderOpen,
   ChevronRight,
+  FileUp,
+  FileDown,
 } from "lucide-react";
 
 interface CellData {
@@ -111,6 +113,50 @@ export default function App() {
       localStorage.setItem(LocalStorageKeys.Projects, JSON.stringify(updated));
       return updated;
     });
+  };
+
+  const exportProject = () => {
+    const project: Project = {
+      id: projectId,
+      name: projectName,
+      pages,
+      templateId: selectedTemplate.id,
+      cellsData,
+      lastModified: Date.now()
+    };
+    const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+    saveAs(blob, `${projectName.replace(/\s+/g, '_').toLowerCase()}_project.json`);
+    setIsMenuOpen(false);
+  };
+
+  const importProject = (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const project: Project = JSON.parse(event.target?.result as string);
+        // Generate a new ID to avoid conflicts but keep the data
+        const importedProject = {
+          ...project,
+          id: Date.now().toString(),
+          lastModified: Date.now()
+        };
+        loadProject(importedProject);
+        // Also save it to local storage immediately
+        setSavedProjects(prev => {
+          const updated = [importedProject, ...prev];
+          localStorage.setItem(LocalStorageKeys.Projects, JSON.stringify(updated));
+          return updated;
+        });
+        setIsMenuOpen(false);
+      } catch (error) {
+        console.error("Failed to import project:", error);
+        alert("Invalid project file");
+      }
+    };
+    reader.readAsText(file);
   };
 
   const handleTemplateChange = (template: Template) => {
@@ -312,6 +358,26 @@ export default function App() {
                   </div>
                   <ChevronRight className={`w-3 h-3 transition-transform ${isSubmenuOpen ? 'rotate-90' : ''}`} />
                 </button>
+
+                <div className="h-px bg-gray-100 my-2" />
+                <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Share</div>
+                
+                <button 
+                  onClick={exportProject}
+                  className="w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                >
+                  <FileDown className="w-4 h-4" /> Export Project (.json)
+                </button>
+
+                <label className="w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors cursor-pointer">
+                  <FileUp className="w-4 h-4" /> Import Project (.json)
+                  <input 
+                    type="file" 
+                    accept=".json" 
+                    onChange={importProject} 
+                    className="hidden" 
+                  />
+                </label>
               </div>
             </motion.div>
 
