@@ -129,16 +129,7 @@ export default function App() {
   };
 
   const handleNewProject = () => {
-    const hasLabels = Object.values(cellsData).some(page => 
-      Object.values(page).some(cell => cell.text.trim() !== "")
-    );
-
-    if (hasLabels) {
-      setConfirmMode('new_project');
-      setShowConfirmModal(true);
-    } else {
-      resetToNewProject();
-    }
+    resetToNewProject();
   };
 
   const resetToNewProject = () => {
@@ -277,7 +268,10 @@ export default function App() {
     <div className="flex flex-col h-screen overflow-hidden">
       {/* Toolbar / Header */}
       <header className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-4 shrink-0 z-20">
-        <h1 className="font-semibold text-sm tracking-tight">TCG Label Studio</h1>
+        <div className="flex items-center gap-3">
+          <img src="/logo.svg" alt="Logo" className="h-7" referrerPolicy="no-referrer" />
+          <h1 className="font-semibold text-sm tracking-tight">TCG Label Studio</h1>
+        </div>
       </header>
 
       {/* Tiered Menu Overlay Placeholder */}
