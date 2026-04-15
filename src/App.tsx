@@ -23,6 +23,7 @@ import {
   ChevronRight,
   FileUp,
   FileDown,
+  Trash2,
 } from "lucide-react";
 
 interface CellData {
@@ -59,7 +60,7 @@ export default function App() {
   const [selectedCellIndex, setSelectedCellIndex] = useState<number | null>(null);
   const [cellsData, setCellsData] = useState<Record<number, Record<number, CellData>>>({});
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [confirmMode, setConfirmMode] = useState<'template' | 'new_project'>('template');
+  const [confirmMode, setConfirmMode] = useState<'template' | 'new_project' | 'delete_page'>('template');
   const [pendingTemplate, setPendingTemplate] = useState<Template | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const printContainerRef = useRef<HTMLDivElement>(null);
@@ -216,9 +217,45 @@ export default function App() {
       setSelectedCellIndex(null);
     } else if (confirmMode === 'new_project') {
       resetToNewProject();
+    } else if (confirmMode === 'delete_page') {
+      executeDeletePage();
     }
     setShowConfirmModal(false);
     setPendingTemplate(null);
+  };
+
+  const handleDeletePage = () => {
+    if (pages.length <= 1) return;
+
+    const pageData = cellsData[activePageIndex];
+    const hasLabels = pageData ? Object.values(pageData).some((cell: CellData) => cell.text.trim() !== "") : false;
+
+    if (hasLabels) {
+      setConfirmMode('delete_page');
+      setShowConfirmModal(true);
+    } else {
+      executeDeletePage();
+    }
+  };
+
+  const executeDeletePage = () => {
+    const newPages = pages.filter((_, i) => i !== activePageIndex);
+    
+    // Shift cellsData for subsequent pages
+    const newCellsData: Record<number, Record<number, CellData>> = {};
+    Object.keys(cellsData).forEach((pageIdx) => {
+      const idx = parseInt(pageIdx);
+      const data = cellsData[idx];
+      if (idx < activePageIndex) {
+        newCellsData[idx] = data;
+      } else if (idx > activePageIndex) {
+        newCellsData[idx - 1] = data;
+      }
+    });
+
+    setPages(newPages);
+    setCellsData(newCellsData);
+    setActivePageIndex(Math.max(0, activePageIndex - 1));
   };
 
   const exportAllAsPng = async () => {
@@ -766,6 +803,22 @@ export default function App() {
                     </button>
                   ))}
                 </div>
+                <div className="h-px bg-gray-100 my-6" />
+
+                <div className="space-y-3">
+                  <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Page Actions</h3>
+                  <button
+                    onClick={handleDeletePage}
+                    disabled={pages.length <= 1}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed border border-red-100"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete Current Page
+                  </button>
+                  {pages.length <= 1 && (
+                    <p className="text-[9px] text-gray-400 text-center italic">Cannot delete the only page</p>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -797,12 +850,16 @@ export default function App() {
               </div>
               <div className="text-center space-y-2">
                 <h3 className="text-sm font-bold text-gray-900">
-                  {confirmMode === 'template' ? 'Reset all labels?' : 'Start new project?'}
+                  {confirmMode === 'template' ? 'Reset all labels?' : 
+                   confirmMode === 'new_project' ? 'Start new project?' : 
+                   'Delete this page?'}
                 </h3>
                 <p className="text-xs text-gray-500 leading-relaxed">
                   {confirmMode === 'template' 
                     ? 'Changing the template will delete all existing label text across all pages. This action cannot be undone.'
-                    : 'Starting a new project will clear all current labels, pages, and project settings. This action cannot be undone.'}
+                    : confirmMode === 'new_project'
+                    ? 'Starting a new project will clear all current labels, pages, and project settings. This action cannot be undone.'
+                    : 'This page contains label data. Deleting it will permanently remove all labels on this page. This action cannot be undone.'}
                 </p>
               </div>
             </div>
@@ -817,7 +874,9 @@ export default function App() {
                 onClick={handleConfirmAction}
                 className="flex-1 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 transition-colors"
               >
-                {confirmMode === 'template' ? 'Reset & Change' : 'Clear & Start New'}
+                {confirmMode === 'template' ? 'Reset & Change' : 
+                 confirmMode === 'new_project' ? 'Clear & Start New' : 
+                 'Delete Page'}
               </button>
             </div>
           </motion.div>
