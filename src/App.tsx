@@ -514,7 +514,7 @@ export default function App() {
 
           <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
             {selectedCellIndex !== null && currentCell ? (
-              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-200">
+              <div key={selectedCellIndex} className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-200">
                 <div className="flex items-center justify-between">
                   <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cell Properties</h3>
                   <button 
@@ -531,6 +531,7 @@ export default function App() {
                     Label Text
                   </label>
                   <textarea
+                    autoFocus
                     value={currentCell.text}
                     onChange={(e) => updateCellData(selectedCellIndex, { text: e.target.value.split('\n').slice(0, 2).join('\n') })}
                     placeholder="Enter text (max 2 lines)"
