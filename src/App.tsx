@@ -548,9 +548,11 @@ export default function App() {
               >
                 {Array.from({ 
                   length: Math.floor(190 / selectedTemplate.width) * 
-                          Math.floor(277 / (selectedTemplate.height * (selectedTemplate.double ? 2 : 1))) 
+                          Math.floor(277 / selectedTemplate.parts.reduce((acc, p) => acc + p.height, 0)) 
                 }).map((_, i) => {
                   const cellData = cellsData[activePageIndex]?.[i];
+                  const totalHeight = selectedTemplate.parts.reduce((acc, p) => acc + p.height, 0);
+                  
                   return (
                     <div 
                       key={i}
@@ -560,38 +562,45 @@ export default function App() {
                       }`}
                       style={{
                         width: `${selectedTemplate.width * (595 / 210)}px`,
-                        height: `${selectedTemplate.height * (selectedTemplate.double ? 2 : 1) * (595 / 210)}px`
+                        height: `${totalHeight * (595 / 210)}px`
                       }}
                     >
-                      {/* Fold line for double templates */}
-                      {selectedTemplate.double && (
-                        <div 
-                          className="absolute top-1/2 left-0 right-0 border-t border-dotted border-gray-300 pointer-events-none"
-                          style={{ transform: 'translateY(-50%)' }}
-                        />
-                      )}
+                      {/* Parts Rendering */}
+                      <div className="flex flex-col h-full">
+                        {selectedTemplate.parts.map((part, pIdx) => (
+                          <div 
+                            key={pIdx}
+                            className={`relative border-b border-gray-100 last:border-b-0 ${part.isWritable ? '' : 'bg-gray-50/30'}`}
+                            style={{ height: `${(part.height / totalHeight) * 100}%` }}
+                          >
+                            {/* Fold line indicator if not the last part */}
+                            {pIdx < selectedTemplate.parts.length - 1 && (
+                              <div className="absolute bottom-0 left-0 right-0 border-b border-dotted border-gray-300 z-10" />
+                            )}
 
-                      {/* Cell Content */}
-                      <div 
-                        className={`absolute left-0 right-0 p-1 flex flex-col justify-center pointer-events-none ${
-                          selectedTemplate.double ? 'top-0 h-1/2' : 'inset-0'
-                        } ${
-                          cellData?.textAlign === 'left' ? 'items-start text-left' :
-                          cellData?.textAlign === 'right' ? 'items-end text-right' :
-                          'items-center text-center'
-                        }`}
-                      >
-                        <span 
-                          className={`text-[10px] leading-tight break-words whitespace-pre-line w-full px-1 ${
-                            cellData?.styles.bold ? 'font-bold' : 'font-normal'
-                          } ${
-                            cellData?.styles.italic ? 'italic' : ''
-                          } ${
-                            cellData?.styles.underline ? 'underline' : ''
-                          }`}
-                        >
-                          {cellData?.text || ""}
-                        </span>
+                            {part.isWritable && (
+                              <div 
+                                className={`absolute inset-0 p-1 flex flex-col justify-center pointer-events-none ${
+                                  cellData?.textAlign === 'left' ? 'items-start text-left' :
+                                  cellData?.textAlign === 'right' ? 'items-end text-right' :
+                                  'items-center text-center'
+                                }`}
+                              >
+                                <span 
+                                  className={`text-[10px] leading-tight break-words whitespace-pre-line w-full px-1 ${
+                                    cellData?.styles.bold ? 'font-bold' : 'font-normal'
+                                  } ${
+                                    cellData?.styles.italic ? 'italic' : ''
+                                  } ${
+                                    cellData?.styles.underline ? 'underline' : ''
+                                  }`}
+                                >
+                                  {cellData?.text || ""}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   );
@@ -730,23 +739,20 @@ export default function App() {
                     >
                       <div className="shrink-0 w-12 h-12 bg-gray-50 rounded-lg flex flex-col items-center justify-center gap-0.5 border border-gray-100 group-hover:border-gray-200 transition-colors">
                         <div className="flex flex-col">
-                          <div
-                            className={`bg-gray-200 border-x border-t border-gray-300 ${template.double ? 'rounded-t-[1px]' : 'rounded-[1px] border-b'}`}
-                            style={{
-                              width: `${(template.width / Math.max(template.width, template.height)) * 30}px`,
-                              height: `${(template.height / Math.max(template.width, template.height)) * 30}px`,
-                              ...(template.double ? { borderBottom: '1px dotted #9CA3AF' } : {})
-                            }}
-                          />
-                          {template.double && (
-                            <div
-                              className="bg-gray-200 rounded-b-[1px] border-x border-b border-gray-300"
-                              style={{
-                                width: `${(template.width / Math.max(template.width, template.height)) * 30}px`,
-                                height: `${(template.height / Math.max(template.width, template.height)) * 30}px`
-                              }}
-                            />
-                          )}
+                          {template.parts.map((part, pIdx) => {
+                            const totalHeight = template.parts.reduce((acc, p) => acc + p.height, 0);
+                            const maxHeight = Math.max(template.width, totalHeight);
+                            return (
+                              <div
+                                key={pIdx}
+                                className={`bg-gray-200 border-x border-gray-300 ${pIdx === 0 ? 'rounded-t-[1px] border-t' : ''} ${pIdx === template.parts.length - 1 ? 'rounded-b-[1px] border-b' : 'border-b border-dotted'}`}
+                                style={{
+                                  width: `${(template.width / maxHeight) * 30}px`,
+                                  height: `${(part.height / maxHeight) * 30}px`,
+                                }}
+                              />
+                            );
+                          })}
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -754,20 +760,11 @@ export default function App() {
                           {template.name}
                         </div>
                         <div className={`text-[10px] font-mono ${selectedTemplate.id === template.id ? 'text-gray-400' : 'text-gray-400'}`}>
-                          {template.width}x{template.height + (template.double ? template.height : 0)}mm
+                          {template.width}x{template.parts.reduce((acc, p) => acc + p.height, 0)}mm
                         </div>
                       </div>
                     </button>
                   ))}
-                </div>
-
-                <div className="h-px bg-gray-100 my-6" />
-
-                <div className="flex flex-col items-center justify-center text-center space-y-3 opacity-60 py-4">
-                  <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center">
-                    <MousePointer2 className="w-5 h-5 text-gray-400" />
-                  </div>
-                  <p className="text-[10px] text-gray-500 max-w-[160px]">Click on a label in the grid to edit its properties</p>
                 </div>
               </div>
             )}
@@ -850,44 +847,53 @@ export default function App() {
               >
                 {Array.from({ 
                   length: Math.floor(190 / selectedTemplate.width) * 
-                          Math.floor(277 / (selectedTemplate.height * (selectedTemplate.double ? 2 : 1))) 
+                          Math.floor(277 / selectedTemplate.parts.reduce((acc, p) => acc + p.height, 0)) 
                 }).map((_, i) => {
                   const cellData = cellsData[pageIdx]?.[i];
+                  const totalHeight = selectedTemplate.parts.reduce((acc, p) => acc + p.height, 0);
+
                   return (
                     <div 
                       key={i}
                       className="border border-gray-200 relative overflow-hidden"
                       style={{
                         width: `${selectedTemplate.width}mm`,
-                        height: `${selectedTemplate.height * (selectedTemplate.double ? 2 : 1)}mm`
+                        height: `${totalHeight}mm`
                       }}
                     >
-                      {selectedTemplate.double && (
-                        <div 
-                          className="absolute top-1/2 left-0 right-0 border-t border-dotted border-gray-300 pointer-events-none"
-                          style={{ transform: 'translateY(-50%)' }}
-                        />
-                      )}
-                      <div 
-                        className={`absolute left-0 right-0 p-1 flex flex-col justify-center ${
-                          selectedTemplate.double ? 'top-0 h-1/2' : 'inset-0'
-                        } ${
-                          cellData?.textAlign === 'left' ? 'items-start text-left' :
-                          cellData?.textAlign === 'right' ? 'items-end text-right' :
-                          'items-center text-center'
-                        }`}
-                      >
-                        <span 
-                          className={`text-[10px] leading-tight break-words whitespace-pre-line w-full px-1 ${
-                            cellData?.styles.bold ? 'font-bold' : 'font-normal'
-                          } ${
-                            cellData?.styles.italic ? 'italic' : ''
-                          } ${
-                            cellData?.styles.underline ? 'underline' : ''
-                          }`}
-                        >
-                          {cellData?.text || ""}
-                        </span>
+                      <div className="flex flex-col h-full">
+                        {selectedTemplate.parts.map((part, pIdx) => (
+                          <div 
+                            key={pIdx}
+                            className="relative"
+                            style={{ height: `${(part.height / totalHeight) * 100}%` }}
+                          >
+                            {pIdx < selectedTemplate.parts.length - 1 && (
+                              <div className="absolute bottom-0 left-0 right-0 border-b border-dotted border-gray-300" />
+                            )}
+                            {part.isWritable && (
+                              <div 
+                                className={`absolute inset-0 p-1 flex flex-col justify-center ${
+                                  cellData?.textAlign === 'left' ? 'items-start text-left' :
+                                  cellData?.textAlign === 'right' ? 'items-end text-right' :
+                                  'items-center text-center'
+                                }`}
+                              >
+                                <span 
+                                  className={`text-[10px] leading-tight break-words whitespace-pre-line w-full px-1 ${
+                                    cellData?.styles.bold ? 'font-bold' : 'font-normal'
+                                  } ${
+                                    cellData?.styles.italic ? 'italic' : ''
+                                  } ${
+                                    cellData?.styles.underline ? 'underline' : ''
+                                  }`}
+                                >
+                                  {cellData?.text || ""}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   );

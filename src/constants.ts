@@ -3,13 +3,17 @@ export const LocalStorageKeys = {
   LastOpened: "tcg_labels_studio_last_opened"
 }
 
+export interface TemplatePart {
+  height: number;
+  isWritable: boolean;
+}
+
 export interface Template {
   id: string;
   name: string;
   width: number; // in mm
-  height: number; // in mm
+  parts: TemplatePart[];
   description?: string;
-  double: boolean;
 }
 
 export const TEMPLATES: Template[] = [
@@ -17,32 +21,52 @@ export const TEMPLATES: Template[] = [
     id: "standard-single",
     name: "Standard Single",
     width: 63,
-    height: 15,
-    description: "Standard size for Magic, Pokémon, etc.",
-    double: false
+    parts: [{ height: 15, isWritable: true }],
+    description: "Standard size for Magic, Pokémon, etc."
   },
   {
     id: "japanese-single",
     name: "Japanese Single",
     width: 59,
-    height: 15,
-    description: "Smaller size for Yu-Gi-Oh!, Vanguard, etc.",
-    double: false
+    parts: [{ height: 15, isWritable: true }],
+    description: "Smaller size for Yu-Gi-Oh!, Vanguard, etc."
   },
   {
     id: "standard-double",
     name: "Standard Double",
     width: 63,
-    height: 15,
-    description: "Standard size for Magic, Pokémon, etc.",
-    double: true
+    parts: [
+      { height: 15, isWritable: true },
+      { height: 15, isWritable: false }
+    ],
+    description: "Standard size for Magic, Pokémon, etc. (Foldable)"
   },
   {
     id: "japanese-double",
     name: "Japanese Double",
     width: 59,
-    height: 15,
-    description: "Smaller size for Yu-Gi-Oh!, Vanguard, etc.",
-    double: true
+    parts: [
+      { height: 15, isWritable: true },
+      { height: 15, isWritable: false }
+    ],
+    description: "Smaller size for Yu-Gi-Oh!, Vanguard, etc. (Foldable)"
+  },
+  {
+    id: "standard-full",
+    name: "Full Standard",
+    width: 63,
+    parts: [
+      { height: 88, isWritable: true }
+    ],
+    description: "Standard size for Magic, Pokémon, etc."
+  },
+  {
+    id: "japanese-full",
+    name: "Full Japanese",
+    width: 59,
+    parts: [
+      { height: 86, isWritable: true }
+    ],
+    description: "Smaller size for Yu-Gi-Oh!, Vanguard, etc."
   }
 ];
