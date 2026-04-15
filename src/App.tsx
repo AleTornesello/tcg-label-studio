@@ -19,7 +19,6 @@ import {
   Loader2,
   Menu,
   X,
-  Save,
 } from "lucide-react";
 
 interface CellData {
@@ -62,6 +61,7 @@ export default function App() {
 
   // Persistence Logic
   const saveProject = () => {
+    if (!projectId) return;
     const newProject: Project = {
       id: projectId,
       name: projectName,
@@ -79,6 +79,14 @@ export default function App() {
     });
     localStorage.setItem(LocalStorageKeys.LastOpened, projectId);
   };
+
+  // Auto-save effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveProject();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [projectId, projectName, pages, selectedTemplate, cellsData]);
 
   const loadProject = (project: Project) => {
     setProjectId(project.id);
@@ -291,12 +299,6 @@ export default function App() {
                 className="w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
               >
                 <Plus className="w-4 h-4" /> New Project
-              </button>
-              <button 
-                onClick={saveProject}
-                className="w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
-              >
-                <Save className="w-4 h-4" /> Save Current Project
               </button>
               
               {savedProjects.length > 0 && (
