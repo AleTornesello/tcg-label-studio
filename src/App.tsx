@@ -19,6 +19,8 @@ import {
   Loader2,
   Menu,
   X,
+  FolderOpen,
+  ChevronRight,
 } from "lucide-react";
 
 interface CellData {
@@ -50,6 +52,7 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSubmenuOpen, setIsSubmenuOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<Template>(TEMPLATES[0]);
   const [selectedCellIndex, setSelectedCellIndex] = useState<number | null>(null);
   const [cellsData, setCellsData] = useState<Record<number, Record<number, CellData>>>({});
@@ -279,54 +282,86 @@ export default function App() {
         <div className="fixed inset-0 z-[15] top-[104px]">
           <div 
             className="absolute inset-0 bg-black/5 backdrop-blur-[2px]" 
-            onClick={() => setIsMenuOpen(false)}
+            onClick={() => {
+              setIsMenuOpen(false);
+              setIsSubmenuOpen(false);
+            }}
           />
-          <motion.div
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            className="absolute left-4 top-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[calc(100vh-120px)]"
-          >
-            <div className="flex-1 overflow-y-auto py-2 custom-scrollbar">
-              <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">File</div>
-              <button 
-                onClick={handleNewProject}
-                className="w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
-              >
-                <Plus className="w-4 h-4" /> New Project
-              </button>
-              
-              {savedProjects.length > 0 && (
-                <>
-                  <div className="h-px bg-gray-100 my-2" />
-                  <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Saved Projects</div>
-                  <div className="space-y-1 px-2">
-                    {savedProjects.map(project => (
-                      <div 
-                        key={project.id}
-                        onClick={() => loadProject(project)}
-                        className={`group w-full px-3 py-2 rounded-lg text-xs flex items-center justify-between transition-all cursor-pointer ${
-                          projectId === project.id ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className="flex flex-col min-w-0">
-                          <span className="font-bold truncate">{project.name}</span>
-                          <span className="text-[9px] opacity-60">
-                            {new Date(project.lastModified).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <button 
-                          onClick={(e) => deleteProject(project.id, e)}
-                          className="p-1 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 rounded transition-all"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
+          <div className="absolute left-4 top-2 flex gap-2 items-start">
+            <motion.div
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              className="w-64 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col"
+            >
+              <div className="py-2">
+                <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">File</div>
+                <button 
+                  onClick={handleNewProject}
+                  className="w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                >
+                  <Plus className="w-4 h-4" /> New Project
+                </button>
+                <button 
+                  onClick={() => setIsSubmenuOpen(!isSubmenuOpen)}
+                  className={`w-full px-4 py-2 text-xs flex items-center justify-between transition-colors ${
+                    isSubmenuOpen ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <FolderOpen className="w-4 h-4" /> Open Project
                   </div>
-                </>
-              )}
-            </div>
-          </motion.div>
+                  <ChevronRight className={`w-3 h-3 transition-transform ${isSubmenuOpen ? 'rotate-90' : ''}`} />
+                </button>
+              </div>
+            </motion.div>
+
+            {isSubmenuOpen && (
+              <motion.div
+                initial={{ x: -10, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                className="w-72 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[calc(100vh-120px)]"
+              >
+                <div className="flex-1 overflow-y-auto py-2 custom-scrollbar">
+                  <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Recent Projects</div>
+                  <div className="space-y-1 px-2">
+                    {savedProjects
+                      .sort((a, b) => b.lastModified - a.lastModified)
+                      .slice(0, 10)
+                      .map(project => (
+                        <div 
+                          key={project.id}
+                          onClick={() => {
+                            loadProject(project);
+                            setIsSubmenuOpen(false);
+                          }}
+                          className={`group w-full px-3 py-2 rounded-lg text-xs flex items-center justify-between transition-all cursor-pointer ${
+                            projectId === project.id ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold truncate">{project.name}</span>
+                            <span className="text-[9px] opacity-60">
+                              {new Date(project.lastModified).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <button 
+                            onClick={(e) => deleteProject(project.id, e)}
+                            className="p-1 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 rounded transition-all"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    {savedProjects.length === 0 && (
+                      <div className="px-3 py-8 text-center">
+                        <p className="text-[10px] text-gray-400">No saved projects found</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </div>
         </div>
       )}
 
