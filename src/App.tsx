@@ -215,7 +215,10 @@ export default function App() {
       {/* Workspace Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Main Content Container */}
-        <main className="flex-1 overflow-auto relative bg-[#F3F4F6] p-12 flex flex-col items-center custom-scrollbar">
+        <main 
+          className="flex-1 overflow-auto relative bg-[#F3F4F6] p-12 flex flex-col items-center custom-scrollbar"
+          onClick={() => setSelectedCellIndex(null)}
+        >
           {/* Subtle Grid Background */}
           <div
             className="absolute inset-0 pointer-events-none opacity-[0.03]"
@@ -232,6 +235,7 @@ export default function App() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
             className="bg-white shadow-[0_0_50px_rgba(0,0,0,0.1)] border border-gray-200 w-[595px] aspect-[210/297] relative shrink-0 z-10 mb-12 overflow-hidden group"
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Safe Area Indicator (Visual Only) */}
             <div 
