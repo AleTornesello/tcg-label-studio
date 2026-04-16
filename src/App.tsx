@@ -94,6 +94,53 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [projectId, projectName, pages, selectedTemplate, cellsData]);
 
+  // Keyboard Navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (selectedCellIndex === null) return;
+      
+      // Don't navigate if user is typing in an input or textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      const cols = Math.floor(190 / selectedTemplate.width);
+      const totalHeight = selectedTemplate.parts.reduce((acc, p) => acc + p.height, 0);
+      const rows = Math.floor(277 / totalHeight);
+      const totalCells = cols * rows;
+
+      let newIndex = selectedCellIndex;
+
+      switch (e.key) {
+        case 'ArrowUp':
+          newIndex = selectedCellIndex - cols;
+          break;
+        case 'ArrowDown':
+          newIndex = selectedCellIndex + cols;
+          break;
+        case 'ArrowLeft':
+          newIndex = selectedCellIndex - 1;
+          break;
+        case 'ArrowRight':
+          newIndex = selectedCellIndex + 1;
+          break;
+        case 'Escape':
+          setSelectedCellIndex(null);
+          return;
+        default:
+          return;
+      }
+
+      if (newIndex >= 0 && newIndex < totalCells) {
+        e.preventDefault();
+        setSelectedCellIndex(newIndex);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedCellIndex, selectedTemplate]);
+
   const loadProject = (project: Project) => {
     setProjectId(project.id);
     setProjectName(project.name);
@@ -509,6 +556,12 @@ export default function App() {
               type="text"
               value={projectName}
               onChange={(e) => setProjectName(e.target.value.slice(0, 30))}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.stopPropagation();
+                  e.currentTarget.blur();
+                }
+              }}
               maxLength={30}
               className="bg-transparent border-none focus:ring-0 font-bold text-xs tracking-tight text-gray-900 w-56 p-0 placeholder:text-gray-400"
               placeholder="Project Name"
@@ -701,6 +754,12 @@ export default function App() {
                     autoFocus
                     value={currentCell.text}
                     onChange={(e) => updateCellData(selectedCellIndex, { text: e.target.value.split('\n').slice(0, 2).join('\n') })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        e.stopPropagation();
+                        e.currentTarget.blur();
+                      }
+                    }}
                     placeholder="Enter text (max 2 lines)"
                     rows={2}
                     className="w-full p-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-300 resize-none transition-all"
