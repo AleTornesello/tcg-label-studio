@@ -13,7 +13,6 @@ import {
   Italic,
   Underline,
   Type,
-  MousePointer2,
   Printer,
   Download,
   Loader2,
@@ -24,9 +23,19 @@ import {
   FileUp,
   FileDown,
   Trash2,
-  Settings2,
   Layout,
   Save,
+  Image as ImageIcon,
+  ArrowUpLeft,
+  ArrowUp,
+  ArrowUpRight,
+  ArrowLeft,
+  Minimize2,
+  ArrowRight,
+  ArrowDownLeft,
+  ArrowDown,
+  ArrowDownRight,
+  Heart
 } from "lucide-react";
 
 interface CellData {
@@ -34,6 +43,11 @@ interface CellData {
   textAlign: 'left' | 'center' | 'right';
   color?: string;
   textColor?: string;
+  bgImageUrl?: string;
+  bgImageSize?: 'contain' | 'cover';
+  bgImagePosition?: string;
+  bgImageEffect?: 'none' | 'grayscale';
+  bgImageOpacity?: number;
   styles: {
     bold: boolean;
     italic: boolean;
@@ -110,7 +124,7 @@ export default function App() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (selectedCellIndex === null) return;
-      
+
       // Don't navigate if user is typing in an input or textarea
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
@@ -246,7 +260,7 @@ export default function App() {
   const handleTemplateChange = (template: Template) => {
     if (template.id === selectedTemplate.id) return;
 
-    const hasLabels = Object.values(cellsData).some(page => 
+    const hasLabels = Object.values(cellsData).some(page =>
       Object.values(page).some(cell => cell.text.trim() !== "")
     );
 
@@ -323,7 +337,7 @@ export default function App() {
 
   const executeDeletePage = () => {
     const newPages = pages.filter((_, i) => i !== activePageIndex);
-    
+
     // Shift cellsData for subsequent pages
     const newCellsData: Record<number, Record<number, CellData>> = {};
     Object.keys(cellsData).forEach((pageIdx) => {
@@ -348,7 +362,7 @@ export default function App() {
     try {
       const zip = new JSZip();
       const pagesElements = printContainerRef.current.querySelectorAll('.print-page');
-      
+
       // Temporarily show the container for capturing
       const container = printContainerRef.current;
       container.style.display = 'block';
@@ -368,7 +382,7 @@ export default function App() {
 
       const content = await zip.generateAsync({ type: 'blob' });
       saveAs(content, 'tcg-labels.zip');
-      
+
       // Restore container state
       container.style.display = 'none';
       container.style.position = '';
@@ -405,6 +419,10 @@ export default function App() {
               textAlign: 'center',
               color: '#ffffff',
               textColor: '#000000',
+              bgImageSize: 'cover',
+              bgImagePosition: 'center center',
+              bgImageEffect: 'none',
+              bgImageOpacity: 100,
               styles: { bold: false, italic: false, underline: false }
             }),
             ...data
@@ -421,6 +439,10 @@ export default function App() {
       textAlign: 'center',
       color: '#ffffff',
       textColor: '#000000',
+      bgImageSize: 'cover',
+      bgImagePosition: 'center center',
+      bgImageEffect: 'none',
+      bgImageOpacity: 100,
       styles: { bold: false, italic: false, underline: false }
     };
     updateCellData(index, {
@@ -436,12 +458,16 @@ export default function App() {
     textAlign: 'center',
     color: '#ffffff',
     textColor: '#000000',
+    bgImageSize: 'cover',
+    bgImagePosition: 'center center',
+    bgImageEffect: 'none',
+    bgImageOpacity: 100,
     styles: { bold: false, italic: false, underline: false }
   }) : null;
 
   // Extract unique custom colors used in the current project
   const projectCustomColors = Array.from(new Set(
-    Object.values(cellsData).flatMap(page => 
+    Object.values(cellsData).flatMap(page =>
       Object.values(page)
         .map(cell => cell.color)
         .filter(color => color && color !== '#ffffff' && !PRESET_COLORS.includes(color))
@@ -450,7 +476,7 @@ export default function App() {
 
   // Extract unique custom text colors used in the current project
   const projectCustomTextColors = Array.from(new Set(
-    Object.values(cellsData).flatMap(page => 
+    Object.values(cellsData).flatMap(page =>
       Object.values(page)
         .map(cell => cell.textColor)
         .filter(color => color && color !== '#000000' && color !== '#ffffff' && !PRESET_TEXT_COLORS.includes(color))
@@ -470,8 +496,8 @@ export default function App() {
       {/* Tiered Menu Overlay Placeholder */}
       {isMenuOpen && (
         <div className="fixed inset-0 z-[15] top-[104px]">
-          <div 
-            className="absolute inset-0 bg-black/5 backdrop-blur-[2px]" 
+          <div
+            className="absolute inset-0 bg-black/5 backdrop-blur-[2px]"
             onClick={() => {
               setIsMenuOpen(false);
               setIsSubmenuOpen(false);
@@ -485,20 +511,19 @@ export default function App() {
             >
               <div className="py-2">
                 <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">File</div>
-                <button 
+                <button
                   onClick={handleNewProject}
                   className="w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
                 >
                   <Plus className="w-4 h-4" /> New Project
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     setIsSubmenuOpen(!isSubmenuOpen);
                     setIsTemplatesSubmenuOpen(false);
                   }}
-                  className={`w-full px-4 py-2 text-xs flex items-center justify-between transition-colors ${
-                    isSubmenuOpen ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-                  }`}
+                  className={`w-full px-4 py-2 text-xs flex items-center justify-between transition-colors ${isSubmenuOpen ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <FolderOpen className="w-4 h-4" /> Open Project
@@ -506,14 +531,13 @@ export default function App() {
                   <ChevronRight className={`w-3 h-3 transition-transform ${isSubmenuOpen ? 'rotate-90' : ''}`} />
                 </button>
 
-                <button 
+                <button
                   onClick={() => {
                     setIsTemplatesSubmenuOpen(!isTemplatesSubmenuOpen);
                     setIsSubmenuOpen(false);
                   }}
-                  className={`w-full px-4 py-2 text-xs flex items-center justify-between transition-colors ${
-                    isTemplatesSubmenuOpen ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-                  }`}
+                  className={`w-full px-4 py-2 text-xs flex items-center justify-between transition-colors ${isTemplatesSubmenuOpen ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <Layout className="w-4 h-4" /> Custom Templates
@@ -523,8 +547,8 @@ export default function App() {
 
                 <div className="h-px bg-gray-100 my-2" />
                 <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Share</div>
-                
-                <button 
+
+                <button
                   onClick={() => {
                     window.print();
                     setIsMenuOpen(false);
@@ -534,7 +558,7 @@ export default function App() {
                   <Printer className="w-4 h-4" /> Print All
                 </button>
 
-                <button 
+                <button
                   onClick={() => {
                     exportAllAsPng();
                     setIsMenuOpen(false);
@@ -550,7 +574,7 @@ export default function App() {
                   {isExporting ? 'Exporting...' : 'Export PNGs'}
                 </button>
 
-                <button 
+                <button
                   onClick={exportProject}
                   className="w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
                 >
@@ -559,11 +583,11 @@ export default function App() {
 
                 <label className="w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors cursor-pointer">
                   <FileUp className="w-4 h-4" /> Import Project (.json)
-                  <input 
-                    type="file" 
-                    accept=".json" 
-                    onChange={importProject} 
-                    className="hidden" 
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={importProject}
+                    className="hidden"
                   />
                 </label>
               </div>
@@ -578,7 +602,7 @@ export default function App() {
                 <div className="flex-1 overflow-y-auto py-2 custom-scrollbar">
                   <div className="px-3 py-2 flex items-center justify-between">
                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Custom Templates</div>
-                    <button 
+                    <button
                       onClick={() => {
                         setEditingCustomTemplate({
                           id: Date.now().toString(),
@@ -597,7 +621,7 @@ export default function App() {
                   </div>
                   <div className="space-y-1 px-2">
                     {customTemplates.map((template) => (
-                      <div 
+                      <div
                         key={template.id}
                         className="group flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
                         onClick={() => {
@@ -612,7 +636,7 @@ export default function App() {
                           <div className="text-[9px] text-gray-400 font-mono">{template.width}x{template.parts.reduce((acc, p) => acc + p.height, 0)}mm</div>
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button 
+                          <button
                             onClick={(e) => deleteCustomTemplate(template.id, e)}
                             className="p-1.5 hover:bg-red-100 text-red-600 rounded-md transition-colors"
                           >
@@ -643,15 +667,14 @@ export default function App() {
                       .sort((a, b) => b.lastModified - a.lastModified)
                       .slice(0, 10)
                       .map(project => (
-                        <div 
+                        <div
                           key={project.id}
                           onClick={() => {
                             loadProject(project);
                             setIsSubmenuOpen(false);
                           }}
-                          className={`group w-full px-3 py-2 rounded-lg text-xs flex items-center justify-between transition-all cursor-pointer ${
-                            projectId === project.id ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'
-                          }`}
+                          className={`group w-full px-3 py-2 rounded-lg text-xs flex items-center justify-between transition-all cursor-pointer ${projectId === project.id ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'
+                            }`}
                         >
                           <div className="flex flex-col min-w-0">
                             <span className="font-bold truncate">{project.name}</span>
@@ -659,7 +682,7 @@ export default function App() {
                               {new Date(project.lastModified).toLocaleDateString()}
                             </span>
                           </div>
-                          <button 
+                          <button
                             onClick={(e) => deleteProject(project.id, e)}
                             className="p-1 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 rounded transition-all"
                           >
@@ -684,13 +707,13 @@ export default function App() {
       <div className="h-12 border-b border-gray-200 bg-white flex items-center justify-between px-4 shrink-0 overflow-x-auto no-scrollbar">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3 border-r border-gray-100 pr-4 mr-2">
-            <button 
+            <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500"
             >
               {isMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </button>
-            
+
             <input
               type="text"
               value={projectName}
@@ -709,30 +732,30 @@ export default function App() {
 
           <div className="flex items-center gap-2">
             {pages.map((page, index) => (
-            <button
-              key={index}
-              onClick={() => {
-                setActivePageIndex(index);
-                setSelectedCellIndex(null);
-              }}
-              className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all whitespace-nowrap ${activePageIndex === index
+              <button
+                key={index}
+                onClick={() => {
+                  setActivePageIndex(index);
+                  setSelectedCellIndex(null);
+                }}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all whitespace-nowrap ${activePageIndex === index
                   ? "bg-black text-white shadow-sm"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
+                  }`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={addPage}
+              className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-full transition-colors shrink-0"
+              title="Add new page"
             >
-              {page}
+              <Plus className="w-4 h-4" />
             </button>
-          ))}
-          <button
-            onClick={addPage}
-            className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-full transition-colors shrink-0"
-            title="Add new page"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
+          </div>
         </div>
-      </div>
-      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-full transition-all shrink-0"
@@ -761,7 +784,7 @@ export default function App() {
       {/* Workspace Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Main Content Container */}
-        <main 
+        <main
           className="flex-1 overflow-auto relative bg-[#F3F4F6] p-12 flex flex-col items-center custom-scrollbar"
           onClick={() => setSelectedCellIndex(null)}
         >
@@ -784,53 +807,51 @@ export default function App() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Safe Area Indicator (Visual Only) */}
-            <div 
+            <div
               className="absolute inset-0 border border-blue-100/50 pointer-events-none z-0"
               style={{ margin: `${10 * (595 / 210)}px` }}
             />
 
             {/* Grid Rendering */}
-            <div 
+            <div
               className="absolute inset-0 flex items-center justify-center"
               style={{ padding: `${10 * (595 / 210)}px` }}
             >
-              <div 
+              <div
                 className="grid bg-white"
                 style={{
                   gridTemplateColumns: `repeat(${Math.floor(190 / selectedTemplate.width)}, min-content)`,
                   gap: '0px'
                 }}
               >
-                {Array.from({ 
-                  length: Math.floor(190 / selectedTemplate.width) * 
-                          Math.floor(277 / selectedTemplate.parts.reduce((acc, p) => acc + p.height, 0)) 
+                {Array.from({
+                  length: Math.floor(190 / selectedTemplate.width) *
+                    Math.floor(277 / selectedTemplate.parts.reduce((acc, p) => acc + p.height, 0))
                 }).map((_, i) => {
                   const cellData = cellsData[activePageIndex]?.[i];
                   const totalHeight = selectedTemplate.parts.reduce((acc, p) => acc + p.height, 0);
-                  
+
                   return (
-                    <div 
+                    <div
                       key={i}
                       onClick={() => setSelectedCellIndex(i)}
-                      className={`border border-gray-200 relative group/cell transition-all cursor-pointer overflow-hidden ${
-                        selectedCellIndex === i ? 'z-20 bg-blue-50/10' : 'hover:bg-blue-50/30'
-                      }`}
+                      className={`border border-gray-200 relative group/cell transition-all cursor-pointer overflow-hidden ${selectedCellIndex === i ? 'z-20 bg-blue-50/10' : 'hover:bg-blue-50/30'
+                        }`}
                       style={{
                         width: `${selectedTemplate.width * (595 / 210)}px`,
                         height: `${totalHeight * (595 / 210)}px`
                       }}
                     >
                       {/* Selection Ring Overlay */}
-                      <div className={`absolute inset-0 pointer-events-none z-30 transition-all ${
-                        selectedCellIndex === i 
-                          ? 'ring-2 ring-blue-500 ring-inset' 
+                      <div className={`absolute inset-0 pointer-events-none z-30 transition-all ${selectedCellIndex === i
+                          ? 'ring-2 ring-blue-500 ring-inset'
                           : 'group-hover/cell:ring-2 group-hover/cell:ring-blue-300 group-hover/cell:ring-inset'
-                      }`} />
+                        }`} />
 
                       {/* Parts Rendering */}
                       <div className="flex flex-col h-full">
                         {selectedTemplate.parts.map((part, pIdx) => (
-                          <div 
+                          <div
                             key={pIdx}
                             className={`relative border-b border-gray-100 last:border-b-0 ${part.isWritable ? '' : 'bg-gray-50/30'}`}
                             style={{ height: `${(part.height / totalHeight) * 100}%` }}
@@ -841,27 +862,42 @@ export default function App() {
                             )}
 
                             {part.isWritable && (
-                              <div 
-                                className={`absolute inset-0 p-1 flex flex-col justify-center pointer-events-none ${
-                                  cellData?.textAlign === 'left' ? 'items-start text-left' :
-                                  cellData?.textAlign === 'right' ? 'items-end text-right' :
-                                  'items-center text-center'
-                                }`}
-                                style={{ backgroundColor: cellData?.color || '#ffffff' }}
-                              >
-                                <span 
-                                  className={`text-[10px] leading-tight break-words whitespace-pre-line w-full px-1 ${
-                                    cellData?.styles.bold ? 'font-bold' : 'font-normal'
-                                  } ${
-                                    cellData?.styles.italic ? 'italic' : ''
-                                  } ${
-                                    cellData?.styles.underline ? 'underline' : ''
-                                  }`}
-                                  style={{ color: cellData?.textColor || '#000000' }}
+                              <>
+                                {/* Background Layer (separated so filter doesn't affect text) */}
+                                <div
+                                  className="absolute inset-0 z-0"
+                                  style={
+                                    cellData?.bgImageUrl
+                                      ? {
+                                        backgroundImage: `url(${cellData.bgImageUrl})`,
+                                        backgroundSize: cellData.bgImageSize || 'cover',
+                                        backgroundPosition: cellData.bgImagePosition || 'center center',
+                                        backgroundRepeat: 'no-repeat',
+                                        filter: `${cellData.bgImageEffect === 'grayscale' ? 'grayscale(100%) ' : ''}opacity(${cellData.bgImageOpacity ?? 100}%)`.trim() || 'none',
+                                      }
+                                      : {
+                                        backgroundColor: cellData?.color || '#ffffff'
+                                      }
+                                  }
+                                />
+                                {/* Text Layer */}
+                                <div
+                                  className={`absolute inset-0 p-1 flex flex-col justify-center pointer-events-none z-10 ${cellData?.textAlign === 'left' ? 'items-start text-left' :
+                                      cellData?.textAlign === 'right' ? 'items-end text-right' :
+                                        'items-center text-center'
+                                    }`}
                                 >
-                                  {cellData?.text || ""}
-                                </span>
-                              </div>
+                                  <span
+                                    className={`text-[10px] leading-tight break-words whitespace-pre-line w-full px-1 ${cellData?.styles.bold ? 'font-bold' : 'font-normal'
+                                      } ${cellData?.styles.italic ? 'italic' : ''
+                                      } ${cellData?.styles.underline ? 'underline' : ''
+                                      }`}
+                                    style={{ color: cellData?.textColor || '#000000' }}
+                                  >
+                                    {cellData?.text || ""}
+                                  </span>
+                                </div>
+                              </>
                             )}
                           </div>
                         ))}
@@ -885,7 +921,7 @@ export default function App() {
               <div key={selectedCellIndex} className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-200">
                 <div className="flex items-center justify-between">
                   <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cell Properties</h3>
-                  <button 
+                  <button
                     onClick={() => setSelectedCellIndex(null)}
                     className="text-[10px] font-bold text-blue-500 uppercase tracking-widest hover:text-blue-600 transition-colors"
                   >
@@ -925,9 +961,8 @@ export default function App() {
                       <button
                         key={align}
                         onClick={() => updateCellData(selectedCellIndex, { textAlign: align })}
-                        className={`flex-1 flex justify-center py-1.5 rounded-md transition-all ${
-                          currentCell.textAlign === align ? 'bg-white shadow-sm text-black' : 'text-gray-400 hover:text-gray-600'
-                        }`}
+                        className={`flex-1 flex justify-center py-1.5 rounded-md transition-all ${currentCell.textAlign === align ? 'bg-white shadow-sm text-black' : 'text-gray-400 hover:text-gray-600'
+                          }`}
                       >
                         {align === 'left' && <AlignLeft className="w-4 h-4" />}
                         {align === 'center' && <AlignCenter className="w-4 h-4" />}
@@ -943,27 +978,24 @@ export default function App() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => toggleStyle(selectedCellIndex, 'bold')}
-                      className={`flex-1 flex justify-center py-2 border rounded-lg transition-all ${
-                        currentCell.styles.bold ? 'bg-black border-black text-white shadow-md' : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300'
-                      }`}
+                      className={`flex-1 flex justify-center py-2 border rounded-lg transition-all ${currentCell.styles.bold ? 'bg-black border-black text-white shadow-md' : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300'
+                        }`}
                       title="Bold"
                     >
                       <Bold className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => toggleStyle(selectedCellIndex, 'italic')}
-                      className={`flex-1 flex justify-center py-2 border rounded-lg transition-all ${
-                        currentCell.styles.italic ? 'bg-black border-black text-white shadow-md' : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300'
-                      }`}
+                      className={`flex-1 flex justify-center py-2 border rounded-lg transition-all ${currentCell.styles.italic ? 'bg-black border-black text-white shadow-md' : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300'
+                        }`}
                       title="Italic"
                     >
                       <Italic className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => toggleStyle(selectedCellIndex, 'underline')}
-                      className={`flex-1 flex justify-center py-2 border rounded-lg transition-all ${
-                        currentCell.styles.underline ? 'bg-black border-black text-white shadow-md' : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300'
-                      }`}
+                      className={`flex-1 flex justify-center py-2 border rounded-lg transition-all ${currentCell.styles.underline ? 'bg-black border-black text-white shadow-md' : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300'
+                        }`}
                       title="Underline"
                     >
                       <Underline className="w-4 h-4" />
@@ -975,19 +1007,19 @@ export default function App() {
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Text Color</label>
                   <div className="flex items-start gap-2">
-                    <div 
+                    <div
                       className="w-8 h-8 rounded-full border border-gray-200 shadow-inner shrink-0 overflow-hidden relative cursor-pointer group"
                       style={{ backgroundColor: currentCell.textColor || '#000000' }}
                     >
-                      <input 
-                        type="color" 
+                      <input
+                        type="color"
                         value={currentCell.textColor || '#000000'}
                         onChange={(e) => updateCellData(selectedCellIndex, { textColor: e.target.value })}
                         className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
                         title="Choose custom text color"
                       />
                     </div>
-                    
+
                     {/* Predefined text colors */}
                     <div className="min-h-8 flex gap-1.5 flex-1 overflow-x-auto no-scrollbar p-1 flex-wrap">
                       {[...PRESET_TEXT_COLORS, ...projectCustomTextColors].map(presetColor => (
@@ -1007,19 +1039,19 @@ export default function App() {
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Background Color</label>
                   <div className="flex items-start gap-2">
-                    <div 
+                    <div
                       className="w-8 h-8 rounded-full border border-gray-200 shadow-inner shrink-0 overflow-hidden relative cursor-pointer group"
                       style={{ backgroundColor: currentCell.color || '#ffffff' }}
                     >
-                      <input 
-                        type="color" 
+                      <input
+                        type="color"
                         value={currentCell.color || '#ffffff'}
                         onChange={(e) => updateCellData(selectedCellIndex, { color: e.target.value })}
                         className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
                         title="Choose custom background color"
                       />
                     </div>
-                    
+
                     {/* Predefined colors */}
                     <div className="min-h-8 flex gap-1.5 flex-1 overflow-x-auto no-scrollbar p-1 flex-wrap">
                       {[...PRESET_COLORS, ...projectCustomColors].map(presetColor => (
@@ -1033,6 +1065,106 @@ export default function App() {
                       ))}
                     </div>
                   </div>
+                </div>
+
+                {/* Background Image Settings */}
+                <div className="space-y-4 pt-2 border-t border-gray-100">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight flex items-center gap-2">
+                      <ImageIcon className="w-3 h-3" />
+                      Background Image (URL)
+                    </label>
+                    <input
+                      type="text"
+                      value={currentCell.bgImageUrl || ""}
+                      onChange={(e) => updateCellData(selectedCellIndex, { bgImageUrl: e.target.value })}
+                      placeholder="https://example.com/image.jpg"
+                      className="w-full p-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-300 transition-all font-medium"
+                    />
+                  </div>
+
+                  {currentCell.bgImageUrl && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                      {/* Image Size Selection */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Image Size</label>
+                        <div className="flex bg-gray-100 p-1 rounded-lg">
+                          {(['cover', 'contain'] as const).map((size) => (
+                            <button
+                              key={size}
+                              onClick={() => updateCellData(selectedCellIndex, { bgImageSize: size })}
+                              className={`flex-1 flex justify-center py-1.5 rounded-md transition-all text-xs font-semibold capitalize ${currentCell.bgImageSize === size ? 'bg-white shadow-sm text-black' : 'text-gray-400 hover:text-gray-600'
+                                }`}
+                            >
+                              {size}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Image Position Grid */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Image Position</label>
+                        <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg aspect-square">
+                          {[
+                            { pos: 'top left', icon: ArrowUpLeft },
+                            { pos: 'top center', icon: ArrowUp },
+                            { pos: 'top right', icon: ArrowUpRight },
+                            { pos: 'center left', icon: ArrowLeft },
+                            { pos: 'center center', icon: Minimize2 },
+                            { pos: 'center right', icon: ArrowRight },
+                            { pos: 'bottom left', icon: ArrowDownLeft },
+                            { pos: 'bottom center', icon: ArrowDown },
+                            { pos: 'bottom right', icon: ArrowDownRight },
+                          ].map(({ pos, icon: Icon }) => (
+                            <button
+                              key={pos}
+                              onClick={() => updateCellData(selectedCellIndex, { bgImagePosition: pos })}
+                              title={pos}
+                              className={`flex items-center justify-center rounded-md transition-all ${currentCell.bgImagePosition === pos ? 'bg-white shadow-sm text-black' : 'text-gray-400 hover:text-gray-600 hover:bg-black/5'
+                                }`}
+                            >
+                              <Icon className="w-4 h-4" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Image Effects */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Image Effect</label>
+                        <div className="flex bg-gray-100 p-1 rounded-lg">
+                          {(['none', 'grayscale'] as const).map((effect) => (
+                            <button
+                              key={effect}
+                              onClick={() => updateCellData(selectedCellIndex, { bgImageEffect: effect })}
+                              className={`flex-1 flex justify-center py-1.5 rounded-md transition-all text-xs font-semibold capitalize ${(currentCell.bgImageEffect || 'none') === effect ? 'bg-white shadow-sm text-black' : 'text-gray-400 hover:text-gray-600'
+                                }`}
+                            >
+                              {effect}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Image Opacity */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Background Opacity</label>
+                          <span className="text-[10px] text-gray-500 font-medium">{(currentCell.bgImageOpacity ?? 100)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="10"
+                          max="100"
+                          step="5"
+                          value={currentCell.bgImageOpacity ?? 100}
+                          onChange={(e) => updateCellData(selectedCellIndex, { bgImageOpacity: parseInt(e.target.value) })}
+                          className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -1059,17 +1191,16 @@ export default function App() {
                   <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Select Template</h3>
                   <p className="text-[10px] text-gray-400">Choose a layout for all pages</p>
                 </div>
-                
+
                 <div className="grid grid-cols-1 gap-3">
                   {[...TEMPLATES, ...customTemplates].map((template) => (
                     <button
                       key={template.id}
                       onClick={() => handleTemplateChange(template)}
-                      className={`group flex items-center gap-4 p-3 rounded-xl border transition-all text-left ${
-                        selectedTemplate.id === template.id
+                      className={`group flex items-center gap-4 p-3 rounded-xl border transition-all text-left ${selectedTemplate.id === template.id
                           ? "bg-gray-200 border-gray-400 shadow-lg shadow-black/10"
                           : "bg-white border-gray-100 hover:border-gray-300 text-gray-900"
-                      }`}
+                        }`}
                     >
                       <div className="shrink-0 w-12 h-12 bg-gray-50 rounded-lg flex flex-col items-center justify-center gap-0.5 border border-gray-100 group-hover:border-gray-200 transition-colors">
                         <div className="flex flex-col">
@@ -1123,20 +1254,26 @@ export default function App() {
       </div>
 
       {/* Footer / Status Bar */}
-      <footer className="h-8 border-t border-gray-200 bg-white flex items-center justify-end px-4 shrink-0 text-[10px] font-medium text-gray-400 uppercase tracking-wider">
+      <footer className="h-8 border-t border-gray-200 bg-white flex items-center justify-between px-4 shrink-0 text-[12px] font-medium text-gray-400 tracking-wider">
+        <div className="flex items-center">
+          <span>This website is made with&nbsp;</span>
+          <Heart className="w-4 h-4 text-red-500" />
+          <span>&nbsp;by&nbsp;</span>
+          <a href="https://github.com/AleTornesello" className="font-bold hover:underline">Alessandro Tornesello</a>
+        </div>
         <span>v0.0.1</span>
       </footer>
 
       {/* Confirmation Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setShowConfirmModal(false)}
           />
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-sm relative z-10 overflow-hidden"
@@ -1147,33 +1284,33 @@ export default function App() {
               </div>
               <div className="text-center space-y-2">
                 <h3 className="text-sm font-bold text-gray-900">
-                  {confirmMode === 'template' ? 'Reset all labels?' : 
-                   confirmMode === 'new_project' ? 'Start new project?' : 
-                   'Delete this page?'}
+                  {confirmMode === 'template' ? 'Reset all labels?' :
+                    confirmMode === 'new_project' ? 'Start new project?' :
+                      'Delete this page?'}
                 </h3>
                 <p className="text-xs text-gray-500 leading-relaxed">
-                  {confirmMode === 'template' 
+                  {confirmMode === 'template'
                     ? 'Changing the template will delete all existing label text across all pages. This action cannot be undone.'
                     : confirmMode === 'new_project'
-                    ? 'Starting a new project will clear all current labels, pages, and project settings. This action cannot be undone.'
-                    : 'This page contains label data. Deleting it will permanently remove all labels on this page. This action cannot be undone.'}
+                      ? 'Starting a new project will clear all current labels, pages, and project settings. This action cannot be undone.'
+                      : 'This page contains label data. Deleting it will permanently remove all labels on this page. This action cannot be undone.'}
                 </p>
               </div>
             </div>
             <div className="flex border-t border-gray-100">
-              <button 
+              <button
                 onClick={() => setShowConfirmModal(false)}
                 className="flex-1 px-4 py-3 text-xs font-bold text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-100"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleConfirmAction}
                 className="flex-1 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 transition-colors"
               >
-                {confirmMode === 'template' ? 'Reset & Change' : 
-                 confirmMode === 'new_project' ? 'Clear & Start New' : 
-                 'Delete Page'}
+                {confirmMode === 'template' ? 'Reset & Change' :
+                  confirmMode === 'new_project' ? 'Clear & Start New' :
+                    'Delete Page'}
               </button>
             </div>
           </motion.div>
@@ -1183,7 +1320,7 @@ export default function App() {
       {/* Custom Template Modal */}
       {showCustomTemplateModal && editingCustomTemplate && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
@@ -1192,7 +1329,7 @@ export default function App() {
               setEditingCustomTemplate(null);
             }}
           />
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-md relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
@@ -1207,7 +1344,7 @@ export default function App() {
                   <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Design your layout</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => {
                   setShowCustomTemplateModal(false);
                   setEditingCustomTemplate(null);
@@ -1223,19 +1360,19 @@ export default function App() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Name</label>
-                  <input 
+                  <input
                     type="text"
                     value={editingCustomTemplate.name}
-                    onChange={(e) => setEditingCustomTemplate({...editingCustomTemplate, name: e.target.value})}
+                    onChange={(e) => setEditingCustomTemplate({ ...editingCustomTemplate, name: e.target.value })}
                     className="w-full p-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Width (mm)</label>
-                  <input 
+                  <input
                     type="number"
                     value={editingCustomTemplate.width}
-                    onChange={(e) => setEditingCustomTemplate({...editingCustomTemplate, width: parseInt(e.target.value) || 0})}
+                    onChange={(e) => setEditingCustomTemplate({ ...editingCustomTemplate, width: parseInt(e.target.value) || 0 })}
                     className="w-full p-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                   />
                 </div>
@@ -1245,7 +1382,7 @@ export default function App() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Template Parts</label>
-                  <button 
+                  <button
                     onClick={() => {
                       setEditingCustomTemplate({
                         ...editingCustomTemplate,
@@ -1263,7 +1400,7 @@ export default function App() {
                     <div key={idx} className="flex items-end gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 group">
                       <div className="flex-1 space-y-2">
                         <label className="text-[9px] font-bold text-gray-400 uppercase">Height (mm)</label>
-                        <input 
+                        <input
                           type="number"
                           value={part.height}
                           onChange={(e) => {
@@ -1276,7 +1413,7 @@ export default function App() {
                       </div>
                       <div className="flex-1 space-y-2">
                         <label className="text-[9px] font-bold text-gray-400 uppercase">Writable</label>
-                        <button 
+                        <button
                           onClick={() => {
                             const newParts = editingCustomTemplate.parts.map((p, i) => ({
                               ...p,
@@ -1284,16 +1421,15 @@ export default function App() {
                             }));
                             setEditingCustomTemplate({ ...editingCustomTemplate, parts: newParts });
                           }}
-                          className={`w-full flex items-center justify-center gap-2 p-2 text-xs font-bold rounded-lg border transition-all ${
-                            part.isWritable 
-                              ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
+                          className={`w-full flex items-center justify-center gap-2 p-2 text-xs font-bold rounded-lg border transition-all ${part.isWritable
+                              ? 'bg-blue-600 border-blue-600 text-white shadow-md'
                               : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300'
-                          }`}
+                            }`}
                         >
                           {part.isWritable ? 'Yes' : 'No'}
                         </button>
                       </div>
-                      <button 
+                      <button
                         onClick={() => {
                           if (editingCustomTemplate.parts.length <= 1) return;
                           const newParts = editingCustomTemplate.parts.filter((_, i) => i !== idx);
@@ -1313,12 +1449,12 @@ export default function App() {
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Preview</label>
                 <div className="bg-gray-100 rounded-xl p-8 flex items-center justify-center">
-                  <div 
+                  <div
                     className="bg-white shadow-xl border border-gray-200 flex flex-col overflow-hidden"
                     style={{ width: `${editingCustomTemplate.width * 2}px` }}
                   >
                     {editingCustomTemplate.parts.map((part, idx) => (
-                      <div 
+                      <div
                         key={idx}
                         className={`border-b border-gray-100 last:border-b-0 flex items-center justify-center ${part.isWritable ? 'bg-white' : 'bg-gray-50/50'}`}
                         style={{ height: `${part.height * 2}px` }}
@@ -1335,7 +1471,7 @@ export default function App() {
             </div>
 
             <div className="p-6 border-t border-gray-100 flex gap-3 shrink-0">
-              <button 
+              <button
                 onClick={() => {
                   setShowCustomTemplateModal(false);
                   setEditingCustomTemplate(null);
@@ -1344,7 +1480,7 @@ export default function App() {
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={() => saveCustomTemplate(editingCustomTemplate)}
                 className="flex-1 px-4 py-3 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all rounded-xl flex items-center justify-center gap-2"
               >
@@ -1359,7 +1495,7 @@ export default function App() {
       <div id="print-container" ref={printContainerRef} className="hidden">
         {pages.map((_, pageIdx) => (
           <div key={pageIdx} className="print-page">
-            <div 
+            <div
               className="relative bg-white"
               style={{
                 width: '210mm',
@@ -1367,7 +1503,7 @@ export default function App() {
                 padding: '10mm'
               }}
             >
-              <div 
+              <div
                 className="grid h-full w-full"
                 style={{
                   gridTemplateColumns: `repeat(${Math.floor(190 / selectedTemplate.width)}, min-content)`,
@@ -1376,15 +1512,15 @@ export default function App() {
                   gap: '0px'
                 }}
               >
-                {Array.from({ 
-                  length: Math.floor(190 / selectedTemplate.width) * 
-                          Math.floor(277 / selectedTemplate.parts.reduce((acc, p) => acc + p.height, 0)) 
+                {Array.from({
+                  length: Math.floor(190 / selectedTemplate.width) *
+                    Math.floor(277 / selectedTemplate.parts.reduce((acc, p) => acc + p.height, 0))
                 }).map((_, i) => {
                   const cellData = cellsData[pageIdx]?.[i];
                   const totalHeight = selectedTemplate.parts.reduce((acc, p) => acc + p.height, 0);
 
                   return (
-                    <div 
+                    <div
                       key={i}
                       className="border border-gray-200 relative overflow-hidden"
                       style={{
@@ -1394,7 +1530,7 @@ export default function App() {
                     >
                       <div className="flex flex-col h-full">
                         {selectedTemplate.parts.map((part, pIdx) => (
-                          <div 
+                          <div
                             key={pIdx}
                             className="relative"
                             style={{ height: `${(part.height / totalHeight) * 100}%` }}
@@ -1403,27 +1539,42 @@ export default function App() {
                               <div className="absolute bottom-0 left-0 right-0 border-b border-dotted border-gray-300" />
                             )}
                             {part.isWritable && (
-                              <div 
-                                className={`absolute inset-0 p-1 flex flex-col justify-center ${
-                                  cellData?.textAlign === 'left' ? 'items-start text-left' :
-                                  cellData?.textAlign === 'right' ? 'items-end text-right' :
-                                  'items-center text-center'
-                                }`}
-                                style={{ backgroundColor: cellData?.color || '#ffffff' }}
-                              >
-                                <span 
-                                  className={`text-[10px] leading-tight break-words whitespace-pre-line w-full px-1 ${
-                                    cellData?.styles.bold ? 'font-bold' : 'font-normal'
-                                  } ${
-                                    cellData?.styles.italic ? 'italic' : ''
-                                  } ${
-                                    cellData?.styles.underline ? 'underline' : ''
-                                  }`}
-                                  style={{ color: cellData?.textColor || '#000000' }}
+                              <>
+                                {/* Background Layer */}
+                                <div
+                                  className="absolute inset-0 z-0"
+                                  style={
+                                    cellData?.bgImageUrl
+                                      ? {
+                                        backgroundImage: `url(${cellData.bgImageUrl})`,
+                                        backgroundSize: cellData.bgImageSize || 'cover',
+                                        backgroundPosition: cellData.bgImagePosition || 'center center',
+                                        backgroundRepeat: 'no-repeat',
+                                        filter: `${cellData.bgImageEffect === 'grayscale' ? 'grayscale(100%) ' : ''}opacity(${cellData.bgImageOpacity ?? 100}%)`.trim() || 'none',
+                                      }
+                                      : {
+                                        backgroundColor: cellData?.color || '#ffffff'
+                                      }
+                                  }
+                                />
+                                {/* Text Layer */}
+                                <div
+                                  className={`absolute inset-0 p-1 flex flex-col justify-center z-10 ${cellData?.textAlign === 'left' ? 'items-start text-left' :
+                                      cellData?.textAlign === 'right' ? 'items-end text-right' :
+                                        'items-center text-center'
+                                    }`}
                                 >
-                                  {cellData?.text || ""}
-                                </span>
-                              </div>
+                                  <span
+                                    className={`text-[10px] leading-tight break-words whitespace-pre-line w-full px-1 ${cellData?.styles.bold ? 'font-bold' : 'font-normal'
+                                      } ${cellData?.styles.italic ? 'italic' : ''
+                                      } ${cellData?.styles.underline ? 'underline' : ''
+                                      }`}
+                                    style={{ color: cellData?.textColor || '#000000' }}
+                                  >
+                                    {cellData?.text || ""}
+                                  </span>
+                                </div>
+                              </>
                             )}
                           </div>
                         ))}
