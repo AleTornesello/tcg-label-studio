@@ -18,6 +18,9 @@ export interface Template {
   custom?: boolean;
 }
 
+export const PRESET_COLORS = ['#ffffff', '#fee2e2', '#fef3c7', '#dcfce7', '#e0e7ff', '#f3e8ff', '#f3f4f6'];
+export const PRESET_TEXT_COLORS = ['#000000', '#dc2626', '#d97706', '#16a34a', '#2563eb', '#9333ea', '#4b5563', '#ffffff'];
+
 export const TEMPLATES: Template[] = [
   {
     id: "standard-single",

@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { toPng } from 'html-to-image';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { TEMPLATES, type Template, LocalStorageKeys } from "./constants";
+import { TEMPLATES, type Template, LocalStorageKeys, PRESET_COLORS, PRESET_TEXT_COLORS } from "./constants";
 import {
   Plus,
   AlignLeft,
@@ -32,6 +32,8 @@ import {
 interface CellData {
   text: string;
   textAlign: 'left' | 'center' | 'right';
+  color?: string;
+  textColor?: string;
   styles: {
     bold: boolean;
     italic: boolean;
@@ -401,6 +403,8 @@ export default function App() {
             ...(pageData[index] || {
               text: "",
               textAlign: 'center',
+              color: '#ffffff',
+              textColor: '#000000',
               styles: { bold: false, italic: false, underline: false }
             }),
             ...data
@@ -415,6 +419,8 @@ export default function App() {
     const currentData = pageData[index] || {
       text: "",
       textAlign: 'center',
+      color: '#ffffff',
+      textColor: '#000000',
       styles: { bold: false, italic: false, underline: false }
     };
     updateCellData(index, {
@@ -428,8 +434,28 @@ export default function App() {
   const currentCell = selectedCellIndex !== null ? (cellsData[activePageIndex]?.[selectedCellIndex] || {
     text: "",
     textAlign: 'center',
+    color: '#ffffff',
+    textColor: '#000000',
     styles: { bold: false, italic: false, underline: false }
   }) : null;
+
+  // Extract unique custom colors used in the current project
+  const projectCustomColors = Array.from(new Set(
+    Object.values(cellsData).flatMap(page => 
+      Object.values(page)
+        .map(cell => cell.color)
+        .filter(color => color && color !== '#ffffff' && !PRESET_COLORS.includes(color))
+    )
+  )) as string[];
+
+  // Extract unique custom text colors used in the current project
+  const projectCustomTextColors = Array.from(new Set(
+    Object.values(cellsData).flatMap(page => 
+      Object.values(page)
+        .map(cell => cell.textColor)
+        .filter(color => color && color !== '#000000' && color !== '#ffffff' && !PRESET_TEXT_COLORS.includes(color))
+    )
+  )) as string[];
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -787,13 +813,20 @@ export default function App() {
                       key={i}
                       onClick={() => setSelectedCellIndex(i)}
                       className={`border border-gray-200 relative group/cell transition-all cursor-pointer overflow-hidden ${
-                        selectedCellIndex === i ? 'ring-2 ring-blue-500 ring-inset z-20 bg-blue-50/10' : 'hover:bg-blue-50/30'
+                        selectedCellIndex === i ? 'z-20 bg-blue-50/10' : 'hover:bg-blue-50/30'
                       }`}
                       style={{
                         width: `${selectedTemplate.width * (595 / 210)}px`,
                         height: `${totalHeight * (595 / 210)}px`
                       }}
                     >
+                      {/* Selection Ring Overlay */}
+                      <div className={`absolute inset-0 pointer-events-none z-30 transition-all ${
+                        selectedCellIndex === i 
+                          ? 'ring-2 ring-blue-500 ring-inset' 
+                          : 'group-hover/cell:ring-2 group-hover/cell:ring-blue-300 group-hover/cell:ring-inset'
+                      }`} />
+
                       {/* Parts Rendering */}
                       <div className="flex flex-col h-full">
                         {selectedTemplate.parts.map((part, pIdx) => (
@@ -814,6 +847,7 @@ export default function App() {
                                   cellData?.textAlign === 'right' ? 'items-end text-right' :
                                   'items-center text-center'
                                 }`}
+                                style={{ backgroundColor: cellData?.color || '#ffffff' }}
                               >
                                 <span 
                                   className={`text-[10px] leading-tight break-words whitespace-pre-line w-full px-1 ${
@@ -823,6 +857,7 @@ export default function App() {
                                   } ${
                                     cellData?.styles.underline ? 'underline' : ''
                                   }`}
+                                  style={{ color: cellData?.textColor || '#000000' }}
                                 >
                                   {cellData?.text || ""}
                                 </span>
@@ -933,6 +968,70 @@ export default function App() {
                     >
                       <Underline className="w-4 h-4" />
                     </button>
+                  </div>
+                </div>
+
+                {/* Text Color */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Text Color</label>
+                  <div className="flex items-start gap-2">
+                    <div 
+                      className="w-8 h-8 rounded-full border border-gray-200 shadow-inner shrink-0 overflow-hidden relative cursor-pointer group"
+                      style={{ backgroundColor: currentCell.textColor || '#000000' }}
+                    >
+                      <input 
+                        type="color" 
+                        value={currentCell.textColor || '#000000'}
+                        onChange={(e) => updateCellData(selectedCellIndex, { textColor: e.target.value })}
+                        className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                        title="Choose custom text color"
+                      />
+                    </div>
+                    
+                    {/* Predefined text colors */}
+                    <div className="min-h-8 flex gap-1.5 flex-1 overflow-x-auto no-scrollbar p-1 flex-wrap">
+                      {[...PRESET_TEXT_COLORS, ...projectCustomTextColors].map(presetColor => (
+                        <button
+                          key={`text-${presetColor}`}
+                          onClick={() => updateCellData(selectedCellIndex, { textColor: presetColor })}
+                          className={`w-6 h-6 rounded-full border shrink-0 transition-all ${currentCell.textColor === presetColor ? 'ring-2 ring-blue-500 ring-offset-1 border-transparent' : 'border-gray-200'}`}
+                          style={{ backgroundColor: presetColor }}
+                          title={presetColor === '#000000' ? 'Black' : presetColor === '#ffffff' ? 'White' : undefined}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Background Color */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Background Color</label>
+                  <div className="flex items-start gap-2">
+                    <div 
+                      className="w-8 h-8 rounded-full border border-gray-200 shadow-inner shrink-0 overflow-hidden relative cursor-pointer group"
+                      style={{ backgroundColor: currentCell.color || '#ffffff' }}
+                    >
+                      <input 
+                        type="color" 
+                        value={currentCell.color || '#ffffff'}
+                        onChange={(e) => updateCellData(selectedCellIndex, { color: e.target.value })}
+                        className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                        title="Choose custom background color"
+                      />
+                    </div>
+                    
+                    {/* Predefined colors */}
+                    <div className="min-h-8 flex gap-1.5 flex-1 overflow-x-auto no-scrollbar p-1 flex-wrap">
+                      {[...PRESET_COLORS, ...projectCustomColors].map(presetColor => (
+                        <button
+                          key={`bg-${presetColor}`}
+                          onClick={() => updateCellData(selectedCellIndex, { color: presetColor })}
+                          className={`w-6 h-6 rounded-full border shrink-0 transition-all ${currentCell.color === presetColor ? 'ring-2 ring-black ring-offset-1 border-transparent' : 'border-gray-200'}`}
+                          style={{ backgroundColor: presetColor }}
+                          title={presetColor === '#ffffff' ? 'White' : undefined}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1310,6 +1409,7 @@ export default function App() {
                                   cellData?.textAlign === 'right' ? 'items-end text-right' :
                                   'items-center text-center'
                                 }`}
+                                style={{ backgroundColor: cellData?.color || '#ffffff' }}
                               >
                                 <span 
                                   className={`text-[10px] leading-tight break-words whitespace-pre-line w-full px-1 ${
@@ -1319,6 +1419,7 @@ export default function App() {
                                   } ${
                                     cellData?.styles.underline ? 'underline' : ''
                                   }`}
+                                  style={{ color: cellData?.textColor || '#000000' }}
                                 >
                                   {cellData?.text || ""}
                                 </span>
