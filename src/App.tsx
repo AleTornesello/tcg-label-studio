@@ -213,6 +213,48 @@ export default function App() {
     });
   };
 
+  const exportCustomTemplates = () => {
+    const dataStr = JSON.stringify(customTemplates, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    saveAs(blob, 'tcg-custom-templates.json');
+  };
+
+  const importCustomTemplates = (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        const importedTemplates = JSON.parse(content) as Template[];
+        
+        if (!Array.isArray(importedTemplates)) throw new Error('Invalid format');
+        
+        const currentIds = new Set(customTemplates.map(t => t.id));
+        const newTemplates = [...customTemplates];
+        
+        importedTemplates.forEach(template => {
+          if (template.id && template.name && template.width && Array.isArray(template.parts)) {
+            const idToUse = currentIds.has(template.id) ? Date.now().toString() + Math.random().toString(36).substring(2, 9) : template.id;
+            newTemplates.push({
+              ...template,
+              id: idToUse
+            });
+            currentIds.add(idToUse);
+          }
+        });
+
+        setCustomTemplates(newTemplates);
+        localStorage.setItem(LocalStorageKeys.CustomTemplates, JSON.stringify(newTemplates));
+      } catch (err) {
+        alert('Invalid template file');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   const exportProject = () => {
     const project: Project = {
       id: projectId,
@@ -651,6 +693,24 @@ export default function App() {
                       </div>
                     )}
                   </div>
+                </div>
+                <div className="p-2 border-t border-gray-100 space-y-1">
+                  <button 
+                    onClick={exportCustomTemplates}
+                    disabled={customTemplates.length === 0}
+                    className="w-full px-3 py-2 text-xs flex items-center gap-3 transition-colors rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 hover:bg-gray-50"
+                  >
+                    <FileDown className="w-4 h-4" /> Export Templates
+                  </button>
+                  <label className="w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors cursor-pointer rounded-lg">
+                    <FileUp className="w-4 h-4" /> Import Templates
+                    <input 
+                      type="file" 
+                      accept=".json" 
+                      onChange={importCustomTemplates} 
+                      className="hidden" 
+                    />
+                  </label>
                 </div>
               </motion.div>
             )}
