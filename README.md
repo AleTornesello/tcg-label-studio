@@ -1,5 +1,9 @@
 # TCG Label Studio
 
+<p align="center">
+  <img src="docs/screenshots/overwiew.png" alt="TCG Label Studio Overview" />
+</p>
+
 TCG Label Studio is a professional web application designed to help Trading Card Game (TCG) collectors and players create, manage, and print high-quality labels for their collections. Whether you're organizing Magic: The Gathering, Pokémon, or Yu-Gi-Oh! cards, this tool provides the precision and flexibility needed for perfect labeling.
 
 ## 🚀 Features
@@ -13,6 +17,14 @@ TCG Label Studio is a professional web application designed to help Trading Card
 - **Print Ready**: Optimized print styles to ensure your labels come out perfectly on A4 paper.
 - **Rich Text Styling**: Full control over text alignment and styling (Bold, Italic, Underline).
 - **User-Centric UI**: Polished interface with auto-focusing editors and intuitive navigation.
+
+## ⌨️ Keyboard Shortcuts
+
+- **Arrow Keys (↑ ↓ ← →)**: Navigate between label cells in the grid.
+- **Escape**:
+  - **Exit Text Editing**: Press while typing in a label or project name to return focus to the grid for navigation.
+  - **Deselect**: Press when a cell is selected to clear the selection and close the properties panel.
+- **Auto-Focus**: Selecting a cell automatically focuses the text editor for immediate typing.
 
 ## 🛠️ Built With
 

@@ -24,6 +24,9 @@ import {
   FileUp,
   FileDown,
   Trash2,
+  Settings2,
+  Layout,
+  Save,
 } from "lucide-react";
 
 interface CellData {
@@ -59,8 +62,15 @@ export default function App() {
   const [selectedTemplate, setSelectedTemplate] = useState<Template>(TEMPLATES[0]);
   const [selectedCellIndex, setSelectedCellIndex] = useState<number | null>(null);
   const [cellsData, setCellsData] = useState<Record<number, Record<number, CellData>>>({});
+  const [customTemplates, setCustomTemplates] = useState<Template[]>(() => {
+    const saved = localStorage.getItem(LocalStorageKeys.CustomTemplates);
+    return saved ? JSON.parse(saved) : [];
+  });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmMode, setConfirmMode] = useState<'template' | 'new_project' | 'delete_page'>('template');
+  const [showCustomTemplateModal, setShowCustomTemplateModal] = useState(false);
+  const [isTemplatesSubmenuOpen, setIsTemplatesSubmenuOpen] = useState(false);
+  const [editingCustomTemplate, setEditingCustomTemplate] = useState<Template | null>(null);
   const [pendingTemplate, setPendingTemplate] = useState<Template | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const printContainerRef = useRef<HTMLDivElement>(null);
@@ -146,12 +156,36 @@ export default function App() {
     setProjectName(project.name);
     setPages(project.pages);
     setActivePageIndex(0);
-    const template = TEMPLATES.find(t => t.id === project.templateId) || TEMPLATES[0];
+    const allTemplates = [...TEMPLATES, ...customTemplates];
+    const template = allTemplates.find(t => t.id === project.templateId) || TEMPLATES[0];
     setSelectedTemplate(template);
     setCellsData(project.cellsData);
     setSelectedCellIndex(null);
     setIsMenuOpen(false);
     localStorage.setItem(LocalStorageKeys.LastOpened, project.id);
+  };
+
+  const saveCustomTemplate = (template: Template) => {
+    setCustomTemplates(prev => {
+      const filtered = prev.filter(t => t.id !== template.id);
+      const updated = [template, ...filtered];
+      localStorage.setItem(LocalStorageKeys.CustomTemplates, JSON.stringify(updated));
+      return updated;
+    });
+    setShowCustomTemplateModal(false);
+    setEditingCustomTemplate(null);
+  };
+
+  const deleteCustomTemplate = (id: string, e: any) => {
+    e.stopPropagation();
+    setCustomTemplates(prev => {
+      const updated = prev.filter(t => t.id !== id);
+      localStorage.setItem(LocalStorageKeys.CustomTemplates, JSON.stringify(updated));
+      return updated;
+    });
+    if (selectedTemplate.id === id) {
+      setSelectedTemplate(TEMPLATES[0]);
+    }
   };
 
   const deleteProject = (id: string, e: any) => {
@@ -432,7 +466,10 @@ export default function App() {
                   <Plus className="w-4 h-4" /> New Project
                 </button>
                 <button 
-                  onClick={() => setIsSubmenuOpen(!isSubmenuOpen)}
+                  onClick={() => {
+                    setIsSubmenuOpen(!isSubmenuOpen);
+                    setIsTemplatesSubmenuOpen(false);
+                  }}
                   className={`w-full px-4 py-2 text-xs flex items-center justify-between transition-colors ${
                     isSubmenuOpen ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
                   }`}
@@ -441,6 +478,21 @@ export default function App() {
                     <FolderOpen className="w-4 h-4" /> Open Project
                   </div>
                   <ChevronRight className={`w-3 h-3 transition-transform ${isSubmenuOpen ? 'rotate-90' : ''}`} />
+                </button>
+
+                <button 
+                  onClick={() => {
+                    setIsTemplatesSubmenuOpen(!isTemplatesSubmenuOpen);
+                    setIsSubmenuOpen(false);
+                  }}
+                  className={`w-full px-4 py-2 text-xs flex items-center justify-between transition-colors ${
+                    isTemplatesSubmenuOpen ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Layout className="w-4 h-4" /> Custom Templates
+                  </div>
+                  <ChevronRight className={`w-3 h-3 transition-transform ${isTemplatesSubmenuOpen ? 'rotate-90' : ''}`} />
                 </button>
 
                 <div className="h-px bg-gray-100 my-2" />
@@ -491,6 +543,67 @@ export default function App() {
               </div>
             </motion.div>
 
+            {isTemplatesSubmenuOpen && (
+              <motion.div
+                initial={{ x: -10, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                className="w-72 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[calc(100vh-120px)]"
+              >
+                <div className="flex-1 overflow-y-auto py-2 custom-scrollbar">
+                  <div className="px-3 py-2 flex items-center justify-between">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Custom Templates</div>
+                    <button 
+                      onClick={() => {
+                        setEditingCustomTemplate({
+                          id: Date.now().toString(),
+                          name: "New Template",
+                          width: 63,
+                          parts: [{ height: 15, isWritable: true }],
+                          custom: true
+                        });
+                        setShowCustomTemplateModal(true);
+                      }}
+                      className="p-1 hover:bg-blue-50 text-blue-600 rounded-md transition-colors"
+                      title="Create new template"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="space-y-1 px-2">
+                    {customTemplates.map((template) => (
+                      <div 
+                        key={template.id}
+                        className="group flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          setIsTemplatesSubmenuOpen(false);
+                          setEditingCustomTemplate(template);
+                          setShowCustomTemplateModal(true);
+                        }}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-bold text-gray-900 truncate">{template.name}</div>
+                          <div className="text-[9px] text-gray-400 font-mono">{template.width}x{template.parts.reduce((acc, p) => acc + p.height, 0)}mm</div>
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button 
+                            onClick={(e) => deleteCustomTemplate(template.id, e)}
+                            className="p-1.5 hover:bg-red-100 text-red-600 rounded-md transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {customTemplates.length === 0 && (
+                      <div className="px-3 py-8 text-center">
+                        <p className="text-[10px] text-gray-400">No custom templates found</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
             {isSubmenuOpen && (
               <motion.div
                 initial={{ x: -10, opacity: 0 }}
@@ -849,7 +962,7 @@ export default function App() {
                 </div>
                 
                 <div className="grid grid-cols-1 gap-3">
-                  {TEMPLATES.map((template) => (
+                  {[...TEMPLATES, ...customTemplates].map((template) => (
                     <button
                       key={template.id}
                       onClick={() => handleTemplateChange(template)}
@@ -962,6 +1075,181 @@ export default function App() {
                 {confirmMode === 'template' ? 'Reset & Change' : 
                  confirmMode === 'new_project' ? 'Clear & Start New' : 
                  'Delete Page'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Custom Template Modal */}
+      {showCustomTemplateModal && editingCustomTemplate && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => {
+              setShowCustomTemplateModal(false);
+              setEditingCustomTemplate(null);
+            }}
+          />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-md relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+          >
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                  <Layout className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900">Custom Template</h3>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Design your layout</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowCustomTemplateModal(false);
+                  setEditingCustomTemplate(null);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+              {/* Basic Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Name</label>
+                  <input 
+                    type="text"
+                    value={editingCustomTemplate.name}
+                    onChange={(e) => setEditingCustomTemplate({...editingCustomTemplate, name: e.target.value})}
+                    className="w-full p-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Width (mm)</label>
+                  <input 
+                    type="number"
+                    value={editingCustomTemplate.width}
+                    onChange={(e) => setEditingCustomTemplate({...editingCustomTemplate, width: parseInt(e.target.value) || 0})}
+                    className="w-full p-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Parts Editor */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Template Parts</label>
+                  <button 
+                    onClick={() => {
+                      setEditingCustomTemplate({
+                        ...editingCustomTemplate,
+                        parts: [...editingCustomTemplate.parts, { height: 10, isWritable: false }]
+                      });
+                    }}
+                    className="text-[10px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors"
+                  >
+                    <Plus className="w-3 h-3" /> Add Part
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {editingCustomTemplate.parts.map((part, idx) => (
+                    <div key={idx} className="flex items-end gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 group">
+                      <div className="flex-1 space-y-2">
+                        <label className="text-[9px] font-bold text-gray-400 uppercase">Height (mm)</label>
+                        <input 
+                          type="number"
+                          value={part.height}
+                          onChange={(e) => {
+                            const newParts = [...editingCustomTemplate.parts];
+                            newParts[idx] = { ...part, height: parseInt(e.target.value) || 0 };
+                            setEditingCustomTemplate({ ...editingCustomTemplate, parts: newParts });
+                          }}
+                          className="w-full p-2 text-xs bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                        />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <label className="text-[9px] font-bold text-gray-400 uppercase">Writable</label>
+                        <button 
+                          onClick={() => {
+                            const newParts = editingCustomTemplate.parts.map((p, i) => ({
+                              ...p,
+                              isWritable: i === idx ? !p.isWritable : false
+                            }));
+                            setEditingCustomTemplate({ ...editingCustomTemplate, parts: newParts });
+                          }}
+                          className={`w-full flex items-center justify-center gap-2 p-2 text-xs font-bold rounded-lg border transition-all ${
+                            part.isWritable 
+                              ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
+                              : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300'
+                          }`}
+                        >
+                          {part.isWritable ? 'Yes' : 'No'}
+                        </button>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          if (editingCustomTemplate.parts.length <= 1) return;
+                          const newParts = editingCustomTemplate.parts.filter((_, i) => i !== idx);
+                          setEditingCustomTemplate({ ...editingCustomTemplate, parts: newParts });
+                        }}
+                        disabled={editingCustomTemplate.parts.length <= 1}
+                        className="p-2 text-gray-300 hover:text-red-500 disabled:opacity-0 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preview */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Preview</label>
+                <div className="bg-gray-100 rounded-xl p-8 flex items-center justify-center">
+                  <div 
+                    className="bg-white shadow-xl border border-gray-200 flex flex-col overflow-hidden"
+                    style={{ width: `${editingCustomTemplate.width * 2}px` }}
+                  >
+                    {editingCustomTemplate.parts.map((part, idx) => (
+                      <div 
+                        key={idx}
+                        className={`border-b border-gray-100 last:border-b-0 flex items-center justify-center ${part.isWritable ? 'bg-white' : 'bg-gray-50/50'}`}
+                        style={{ height: `${part.height * 2}px` }}
+                      >
+                        {part.isWritable && <Type className="w-3 h-3 text-blue-500 opacity-40" />}
+                        {idx < editingCustomTemplate.parts.length - 1 && (
+                          <div className="absolute bottom-0 left-0 right-0 border-b border-dotted border-gray-300" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-100 flex gap-3 shrink-0">
+              <button 
+                onClick={() => {
+                  setShowCustomTemplateModal(false);
+                  setEditingCustomTemplate(null);
+                }}
+                className="flex-1 px-4 py-3 text-xs font-bold text-gray-500 hover:bg-gray-50 transition-colors rounded-xl border border-gray-200"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => saveCustomTemplate(editingCustomTemplate)}
+                className="flex-1 px-4 py-3 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all rounded-xl flex items-center justify-center gap-2"
+              >
+                <Save className="w-4 h-4" /> Save Template
               </button>
             </div>
           </motion.div>

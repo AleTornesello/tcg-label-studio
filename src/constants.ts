@@ -1,6 +1,7 @@
 export const LocalStorageKeys = {
   Projects: "tcg_labels_studio_projects",
-  LastOpened: "tcg_labels_studio_last_opened"
+  LastOpened: "tcg_labels_studio_last_opened",
+  CustomTemplates: "tcg_labels_studio_custom_templates"
 }
 
 export interface TemplatePart {
@@ -14,6 +15,7 @@ export interface Template {
   width: number; // in mm
   parts: TemplatePart[];
   description?: string;
+  custom?: boolean;
 }
 
 export const TEMPLATES: Template[] = [
