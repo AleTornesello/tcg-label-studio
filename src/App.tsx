@@ -26,6 +26,7 @@ import {
   Layout,
   Save,
   Image as ImageIcon,
+  Search,
   ArrowUpLeft,
   ArrowUp,
   ArrowUpRight,
@@ -89,6 +90,8 @@ export default function App() {
   const [editingCustomTemplate, setEditingCustomTemplate] = useState<Template | null>(null);
   const [pendingTemplate, setPendingTemplate] = useState<Template | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [showAllProjectsModal, setShowAllProjectsModal] = useState(false);
+  const [projectSearchTerm, setProjectSearchTerm] = useState("");
   const printContainerRef = useRef<HTMLDivElement>(null);
 
   // Persistence Logic
@@ -757,6 +760,21 @@ export default function App() {
                     )}
                   </div>
                 </div>
+                {savedProjects.length > 0 && (
+                  <div className="p-2 border-t border-gray-100">
+                    <button
+                      onClick={() => {
+                        setShowAllProjectsModal(true);
+                        setIsMenuOpen(false);
+                        setIsSubmenuOpen(false);
+                        setProjectSearchTerm("");
+                      }}
+                      className="w-full px-3 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                      Show all projects ({savedProjects.length > 999 ? '999+' : savedProjects.length})
+                    </button>
+                  </div>
+                )}
               </motion.div>
             )}
           </div>
@@ -1545,6 +1563,113 @@ export default function App() {
                 className="flex-1 px-4 py-3 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all rounded-xl flex items-center justify-center gap-2"
               >
                 <Save className="w-4 h-4" /> Save Template
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* All Projects Modal */}
+      {showAllProjectsModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowAllProjectsModal(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-2xl relative z-10 overflow-hidden flex flex-col max-h-[80vh]"
+          >
+            <div className="p-6 border-b border-gray-100 flex flex-col gap-4 shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+                    <FolderOpen className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900">All Saved Projects</h3>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Manage your collection</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAllProjectsModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search projects..."
+                  value={projectSearchTerm}
+                  onChange={(e) => setProjectSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {savedProjects
+                  .filter(p => p.name.toLowerCase().includes(projectSearchTerm.toLowerCase()))
+                  .sort((a, b) => b.lastModified - a.lastModified)
+                  .map(project => (
+                    <div
+                      key={project.id}
+                      onClick={() => {
+                        loadProject(project);
+                        setShowAllProjectsModal(false);
+                      }}
+                      className={`group p-4 rounded-2xl border transition-all cursor-pointer relative ${projectId === project.id
+                          ? "bg-blue-50 border-blue-200 ring-1 ring-blue-200"
+                          : "bg-white border-gray-100 hover:border-gray-200 hover:shadow-md"
+                        }`}
+                    >
+                      <div className="flex flex-col gap-1 pr-6">
+                        <span className="text-xs font-bold text-gray-900 truncate">{project.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
+                            {project.pages.length} {project.pages.length === 1 ? 'Page' : 'Pages'}
+                          </span>
+                          <span className="text-[10px] text-gray-400">
+                            {new Date(project.lastModified).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteProject(project.id, e);
+                        }}
+                        className="absolute top-3 right-3 p-1.5 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+              </div>
+
+              {savedProjects.filter(p => p.name.toLowerCase().includes(projectSearchTerm.toLowerCase())).length === 0 && (
+                <div className="py-20 text-center">
+                  <FolderOpen className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                  <p className="text-xs text-gray-400">No matching projects found</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-gray-100 flex items-center justify-end shrink-0">
+              <button
+                onClick={() => setShowAllProjectsModal(false)}
+                className="px-4 py-3 text-xs font-bold text-gray-500 hover:bg-gray-50 transition-colors rounded-xl border border-gray-200"
+              >
+                Close
               </button>
             </div>
           </motion.div>
