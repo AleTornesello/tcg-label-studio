@@ -4,11 +4,23 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-text-main: #111827;
+  --color-text-muted: #6b7280;
+  --color-text-accent: #9ca3af;
+  --color-bg-main: #F9FAFB;
+  --color-border-main: #e5e7eb;
+  --color-border-subtle: #f3f4f6;
+
+  --shadow-main: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 @layer base {
   body {
-    @apply font-sans antialiased bg-[#F9FAFB] text-[#111827];
+    @apply font-sans antialiased bg-bg-main text-text-main;
   }
 
   .custom-scrollbar::-webkit-scrollbar {
